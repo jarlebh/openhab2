@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<thing:thing-descriptions bindingId="tellstick"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:thing="http://eclipse.org/smarthome/schemas/thing-description/v1.0.0"
+    xsi:schemaLocation="http://eclipse.org/smarthome/schemas/thing-description/v1.0.0 http://eclipse.org/smarthome/schemas/thing-description-1.0.0.xsd">
+
+	<bridge-type id="telldus-core">
+		<label>Telldus Center gateway</label>
+		<description>This bridge represents the telldus center.
+		</description>
+
+		<config-description>
+			<parameter name="location" type="text" required="false">
+				<context>location</context>
+				<label>The location of Telldus Core DLL/SO</label>
+				<description>The location of Telldus Core DLL/SO
+				</description>
+				<default>C:/Program Files/Telldus/;C:/Program Files (x86)/Telldus/</default>
+			</parameter>
+			<parameter name="resendInterval" type="integer" required="false">
+                <label>ResendInterval</label>
+                <description>The interval between resend.</description>
+                <default>100</default>
+            </parameter>
+		</config-description>
+
+	</bridge-type>
+</thing:thing-descriptions>
