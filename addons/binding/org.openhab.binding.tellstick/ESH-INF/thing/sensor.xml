@@ -48,7 +48,7 @@
         <tags>
             <tag>heating</tag>
         </tags>
-        <state pattern="%d °C" readOnly="true">
+        <state pattern="%f °C" readOnly="true">
         </state>
 
     </channel-type>
@@ -61,12 +61,14 @@
         <tags>
             <tag>heating</tag>
         </tags>
-        <state pattern="%d" readOnly="true">
+        <state pattern="%d %%" readOnly="true">
         </state>
     </channel-type>
     <channel-type id="timestamp">
         <item-type>DateTime</item-type>
         <label>Last device update</label>
         <description>Last device update</description>
+         <state pattern="%1$ta %1$tR" readOnly="true">
+        </state>
     </channel-type>
 </thing:thing-descriptions>
