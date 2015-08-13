@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<thing:thing-descriptions bindingId="alyt"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xmlns:thing="http://eclipse.org/smarthome/schemas/thing-description/v1.0.0"
+        xsi:schemaLocation="http://eclipse.org/smarthome/schemas/thing-description/v1.0.0 http://eclipse.org/smarthome/schemas/thing-description-1.0.0.xsd">
+
+    <!-- Sample Thing Type -->
+    <thing-type id="sample">
+        <label>Alyt Binding Thing</label>
+        <description>Sample thing for Alyt Binding</description>
+
+        <channels>
+            <channel id="channel1" typeId="sample-channel"/>
+        </channels>
+    </thing-type>
+	<thing-type id="switch">
+		<supported-bridge-type-refs>
+			<bridge-type-ref id="bridge" />
+		</supported-bridge-type-refs>
+
+		<label>Alyt Swtich</label>
+		<description>Alyt Switches: WALL_PLUG</description>
+
+		<channels>
+			<channel id="state" typeId="state" />
+		</channels>
+
+		<config-description>
+			<parameter name="alytId" type="text" required="true">
+				<label>The device ID</label>
+				<description>The ID assigned the device in ALYT.</description>
+			</parameter>
+		</config-description>
+	</thing-type>
+    <!-- Sample Channel Type -->
+    <channel-type id="sample-channel">
+        <item-type>alytItem</item-type>
+        <label>Alyt Binding Channel</label>
+        <description>Sample channel for Alyt Binding</description>
+    </channel-type>
+	 <channel-type id="state">
+        <item-type>Switch</item-type>
+        <label>Switch</label>
+        <description>Turns the power on or off</description>
+        <category>Switch</category>
+    </channel-type>
+</thing:thing-descriptions>

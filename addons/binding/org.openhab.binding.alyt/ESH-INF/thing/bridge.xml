@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<thing:thing-descriptions bindingId="alyt"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:thing="http://eclipse.org/smarthome/schemas/thing-description/v1.0.0"
+	xsi:schemaLocation="http://eclipse.org/smarthome/schemas/thing-description/v1.0.0 org.eclipse.smarthome.thing-description.xsd">
+
+	<bridge-type id="bridge">
+		<label>ALYT LAN gateway</label>
+		<description>This bridge represents the ALYT LAN gateway.
+		</description>
+
+		<config-description>
+			<parameter name="name" type="text" required="true">
+				<label>ALYT HUB Name</label>
+				<description>ALYT HUB Name
+				</description>
+			</parameter>
+			<parameter name="password" type="text" required="true">
+				<label>ALYT HUB Password</label>
+				<description>ALYT HUB Password for local access.
+				</description>
+			</parameter>
+			<parameter name="id" type="text" required="true">
+				<label>ALYT HUB Id</label>
+				<description>ALYT HUB Id
+				</description>
+			</parameter>
+			<parameter name="ipAddress" type="text" required="false">
+				<context>network-address</context>
+				<label>ALYT LAN gateway IP</label>
+				<description>The IP address of the ALYT LAN gateway
+				</description>
+			</parameter>
+			<parameter name="port" type="integer" required="false" min="1"
+				max="65335">
+				<context>network-address</context>
+				<label>ALYT LAN gateway port</label>
+				<description>Port of the LAN gateway</description>
+				<default>8080</default>
+			</parameter>
+			<parameter name="refreshInterval" type="integer" required="false">
+				<label>Refresh Interval</label>
+				<description>The refresh interval in ms which is used to poll given
+					ALYT.
+				</description>
+				<default>30000</default>
+			</parameter>
+			<parameter name="publicCode" type="text" required="false">
+				<label>Public Code</label>
+				<description>The Public Code of the ALYT device, used for remote access.
+				</description>
+			</parameter>
+		</config-description>
+
+	</bridge-type>
+</thing:thing-descriptions>
