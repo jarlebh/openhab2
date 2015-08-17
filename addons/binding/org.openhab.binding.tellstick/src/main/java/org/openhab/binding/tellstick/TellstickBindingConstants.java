@@ -31,6 +31,7 @@ public class TellstickBindingConstants {
     public static final Object DEVICE_RESEND_COUNT = "resend";
     public static final Object DEVICE_ISDIMMER = "dimmer";
     public static final String BRIDGE_TELLDUS_CORE = "telldus-core";
+    public static final String BRIDGE_TELLDUS_LIVE = "telldus-live";
     public static final String DEVICE_SENSOR = "sensor";
     public static final String DEVICE_DIMMER = "dimmer";
     public static final String DEVICE_SWITCH = "switch";
@@ -39,6 +40,8 @@ public class TellstickBindingConstants {
     public final static ThingTypeUID SWITCH_THING_TYPE = new ThingTypeUID(BINDING_ID, DEVICE_SWITCH);
     public final static ThingTypeUID SENSOR_THING_TYPE = new ThingTypeUID(BINDING_ID, DEVICE_SENSOR);
     public final static ThingTypeUID TELLDUSBRIDGE_THING_TYPE = new ThingTypeUID(BINDING_ID, BRIDGE_TELLDUS_CORE);
+    public final static ThingTypeUID TELLDUSCOREBRIDGE_THING_TYPE = new ThingTypeUID(BINDING_ID, BRIDGE_TELLDUS_CORE);
+    public final static ThingTypeUID TELLDUSLIVEBRIDGE_THING_TYPE = new ThingTypeUID(BINDING_ID, BRIDGE_TELLDUS_LIVE);
     // List of all Channel ids
     public final static String CHANNEL_DIMMER = "dimmer";
     public final static String CHANNEL_STATE = "state";
@@ -46,10 +49,11 @@ public class TellstickBindingConstants {
     public static final String CHANNEL_TIMESTAMP = "timestamp";
     public final static String CHANNEL_TEMPERATURE = "temperature";
 
-    public final static Set<ThingTypeUID> SUPPORTED_BRIDGE_THING_TYPES_UIDS = ImmutableSet.of(TELLDUSBRIDGE_THING_TYPE);
+    public final static Set<ThingTypeUID> SUPPORTED_BRIDGE_THING_TYPES_UIDS = ImmutableSet
+            .of(TELLDUSCOREBRIDGE_THING_TYPE, TELLDUSLIVEBRIDGE_THING_TYPE);
     public final static Set<ThingTypeUID> SUPPORTED_DEVICE_THING_TYPES_UIDS = ImmutableSet.of(DIMMER_THING_TYPE,
             SWITCH_THING_TYPE, SENSOR_THING_TYPE);
     public final static Set<ThingTypeUID> SUPPORTED_THING_TYPES_UIDS = ImmutableSet.of(DIMMER_THING_TYPE,
-            SWITCH_THING_TYPE, SENSOR_THING_TYPE, TELLDUSBRIDGE_THING_TYPE);
+            SWITCH_THING_TYPE, SENSOR_THING_TYPE, TELLDUSCOREBRIDGE_THING_TYPE, TELLDUSLIVEBRIDGE_THING_TYPE);
 
 }

@@ -7,7 +7,9 @@ Bundle-Version: 2.0.0.qualifier
 Bundle-RequiredExecutionEnvironment: JavaSE-1.7
 Bundle-ClassPath: .,
  lib/jna-4.0.0.jar,
- lib/javatellstick-1.0.jar
+ lib/javatellstick-1.0.jar,
+ lib/async-http-client-1.8.4.jar,
+ lib/netty-3.9.0.Final.jar
 Import-Package: 
  ch.qos.logback.classic;version="1.0.7",
  ch.qos.logback.core;version="1.0.7",
@@ -16,6 +18,15 @@ Import-Package:
  groovy.json;resolution:=optional,
  groovy.lang;resolution:=optional,
  org.apache.commons.net.util,
+ javax.xml.bind,
+ javax.xml.bind.annotation,
+ javax.xml.bind.annotation.adapters,
+ javax.xml.stream,
+ javax.xml.stream.util,
+ org.apache.commons.httpclient,
+ org.apache.commons.httpclient.methods,
+ org.apache.commons.io;version="2.2.0",
+ org.apache.http,
  org.eclipse.smarthome.config.core,
  org.eclipse.smarthome.config.discovery,
  org.eclipse.smarthome.core.common.registry,
@@ -27,6 +38,7 @@ Import-Package:
  org.hamcrest;core=split;resolution:=optional,
  org.junit;version="4.0.0";resolution:=optional,
  org.openhab.core.library.types,
+ org.openhab.io.net.http,
  org.osgi.framework,
  org.slf4j
 Service-Component: OSGI-INF/*

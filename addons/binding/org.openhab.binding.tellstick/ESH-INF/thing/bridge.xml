@@ -25,4 +25,39 @@
 		</config-description>
 
 	</bridge-type>
+	<bridge-type id="telldus-live">
+        <label>Telldus Live gateway</label>
+        <description>This bridge represents the telldus live service.
+        </description>
+
+        <config-description>
+            <parameter name="privateKey" type="text" required="true">
+                <context>credentials</context>
+                <label>OpenAuth private key from telldus</label>
+                <description>The private key from telldus</description>
+            </parameter>
+            <parameter name="publicKey" type="text" required="true">
+                <context>credentials</context>
+                <label>OpenAuth public key from telldus</label>
+                <description>The public key from telldus</description>
+            </parameter>
+            <parameter name="token" type="text" required="true">
+                <context>credentials</context>
+                <label>OpenAuth Token for access</label>
+                <description>The openauth token.</description>
+            </parameter>
+            <parameter name="tokenSecret" type="text" required="true">
+                <context>credentials</context>
+                <label>OpenAuth Token Secret for access</label>
+                <description>The openauth token secret.</description>
+            </parameter>
+            <parameter name="refreshInterval" type="integer" required="false">
+                <label>Refresh Interval</label>
+                <description>The refresh interval in ms which is used to poll Telldus Live.
+                </description>
+                <default>600000</default>
+            </parameter>
+        </config-description>
+
+    </bridge-type>
 </thing:thing-descriptions>

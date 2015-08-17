@@ -17,7 +17,7 @@ import org.eclipse.smarthome.core.thing.Bridge;
 import org.eclipse.smarthome.core.thing.ThingTypeUID;
 import org.eclipse.smarthome.core.thing.ThingUID;
 import org.openhab.binding.tellstick.TellstickBindingConstants;
-import org.openhab.binding.tellstick.handler.TellstickBridgeHandler;
+import org.openhab.binding.tellstick.handler.TelldusBridgeHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.tellstick.device.iface.Device;
@@ -41,11 +41,11 @@ public class TellstickDiscoveryService extends AbstractDiscoveryService
 
     private final static Logger logger = LoggerFactory.getLogger(TellstickDiscoveryService.class);
 
-    private TellstickBridgeHandler telldusBridgeHandler;
+    private TelldusBridgeHandler telldusBridgeHandler;
 
-    public TellstickDiscoveryService(TellstickBridgeHandler maxCubeBridgeHandler) {
+    public TellstickDiscoveryService(TelldusBridgeHandler telldusBridgeHandler) {
         super(TellstickBindingConstants.SUPPORTED_DEVICE_THING_TYPES_UIDS, 10, true);
-        this.telldusBridgeHandler = maxCubeBridgeHandler;
+        this.telldusBridgeHandler = telldusBridgeHandler;
     }
 
     public void activate() {

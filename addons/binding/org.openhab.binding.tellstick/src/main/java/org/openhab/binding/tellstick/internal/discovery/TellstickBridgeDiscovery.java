@@ -126,7 +126,7 @@ public class TellstickBridgeDiscovery extends AbstractDiscoveryService {
             logger.trace("Adding new Telldus Controller  {}", controller);
             Map<String, Object> properties = new HashMap<>(2);
             properties.put(TellstickBindingConstants.CONFIGPATH_ID, configPath);
-            ThingUID uid = new ThingUID(TellstickBindingConstants.TELLDUSBRIDGE_THING_TYPE,
+            ThingUID uid = new ThingUID(TellstickBindingConstants.TELLDUSCOREBRIDGE_THING_TYPE,
                     Integer.toString(controller.getId()));
             if (uid != null) {
                 DiscoveryResult result = DiscoveryResultBuilder.create(uid).withProperties(properties)
