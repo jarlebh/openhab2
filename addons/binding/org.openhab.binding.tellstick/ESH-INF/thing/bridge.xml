@@ -55,7 +55,7 @@
                 <label>Refresh Interval</label>
                 <description>The refresh interval in ms which is used to poll Telldus Live.
                 </description>
-                <default>600000</default>
+                <default>60000</default>
             </parameter>
         </config-description>
 

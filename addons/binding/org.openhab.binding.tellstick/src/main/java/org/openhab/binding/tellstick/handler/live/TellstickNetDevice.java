@@ -23,6 +23,8 @@ public class TellstickNetDevice implements Device {
     private int state;
     @XmlAttribute
     private String statevalue;
+    @XmlAttribute
+    private int methods;
 
     private boolean updated;
 
@@ -138,5 +140,13 @@ public class TellstickNetDevice implements Device {
         if (deviceId != other.deviceId)
             return false;
         return true;
+    }
+
+    public int getMethods() {
+        return methods;
+    }
+
+    public void setMethods(int methods) {
+        this.methods = methods;
     }
 }

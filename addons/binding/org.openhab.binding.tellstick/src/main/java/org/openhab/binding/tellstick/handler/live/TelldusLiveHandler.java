@@ -1,19 +1,9 @@
 package org.openhab.binding.tellstick.handler.live;
 
-import java.io.IOException;
 import java.util.List;
 import java.util.Vector;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
-
-import javax.xml.bind.JAXBContext;
-import javax.xml.bind.JAXBException;
-import javax.xml.stream.XMLInputFactory;
-import javax.xml.stream.XMLStreamException;
-import javax.xml.stream.XMLStreamReader;
 
 import org.eclipse.smarthome.core.thing.Bridge;
 import org.eclipse.smarthome.core.thing.ChannelUID;
@@ -32,30 +22,13 @@ import org.tellstick.device.TellstickDeviceEvent;
 import org.tellstick.device.TellstickSensorEvent;
 import org.tellstick.device.iface.Device;
 
-import com.ning.http.client.AsyncHttpClient;
-import com.ning.http.client.AsyncHttpClientConfig;
-import com.ning.http.client.AsyncHttpClientConfig.Builder;
-import com.ning.http.client.Response;
-import com.ning.http.client.oauth.ConsumerKey;
-import com.ning.http.client.oauth.OAuthSignatureCalculator;
-import com.ning.http.client.oauth.RequestToken;
-import com.ning.http.client.providers.netty.NettyAsyncHttpProvider;
-
 public class TelldusLiveHandler extends BaseBridgeHandler implements TelldusBridgeHandler {
 
-    static final String HTTP_API_TELLDUS_COM_XML = "http://api.telldus.com/xml/";
-    static final String HTTP_TELLDUS_CLIENTS = HTTP_API_TELLDUS_COM_XML + "clients/list";
-    static final String HTTP_TELLDUS_DEVICES = HTTP_API_TELLDUS_COM_XML + "devices/list";
-    static final String HTTP_TELLDUS_SENSORS = HTTP_API_TELLDUS_COM_XML + "sensors/list?includeValues=1&includeScale=1";
-    static final String HTTP_TELLDUS_SENSOR_INFO = HTTP_API_TELLDUS_COM_XML + "sensor/info";
-    private final static Logger logger = LoggerFactory.getLogger(TelldusLiveHandler.class);
+    final static Logger logger = LoggerFactory.getLogger(TelldusLiveHandler.class);
 
-    private static final int REQUEST_TIMEOUT_MS = 2000;
-
-    private AsyncHttpClient client;
-    private TellstickNetDevices deviceList;
-    private TellstickNetSensors sensorList;
-    private TelldusLiveDeviceController controller;
+    private TellstickNetDevices deviceList = null;
+    private TellstickNetSensors sensorList = null;
+    private TelldusLiveDeviceController controller = new TelldusLiveDeviceController();
     private List<DeviceStatusListener> deviceStatusListeners = new Vector<DeviceStatusListener>();
     private long lastUpdate;
 
@@ -80,9 +53,9 @@ public class TelldusLiveHandler extends BaseBridgeHandler implements TelldusBrid
         // configuration update. :
         getThing().setHandler(this);
         this.controller = new TelldusLiveDeviceController();
-        connectHttpClient(configuration.publicKey, configuration.privateKey, configuration.token,
+        this.controller.connectHttpClient(configuration.publicKey, configuration.privateKey, configuration.token,
                 configuration.tokenSecret);
-        refreshDeviceList();
+        // refreshDeviceList();
         startAutomaticRefresh(configuration.refreshInterval);
         updateStatus(ThingStatus.ONLINE);
     }
@@ -93,40 +66,18 @@ public class TelldusLiveHandler extends BaseBridgeHandler implements TelldusBrid
         }
     }
 
-    void connectHttpClient(String publicKey, String privateKey, String token, String tokenSecret) {
-        ConsumerKey consumer = new ConsumerKey(publicKey, privateKey);
-        RequestToken user = new RequestToken(token, tokenSecret);
-        OAuthSignatureCalculator calc = new OAuthSignatureCalculator(consumer, user);
-        this.client = new AsyncHttpClient(new NettyAsyncHttpProvider(createAsyncHttpClientConfig()));
-        try {
-            this.client.setSignatureCalculator(calc);
-            Response response = client.prepareGet(HTTP_TELLDUS_CLIENTS).execute().get();
-            logger.info("Response " + response.getResponseBody() + " tt " + response.getStatusText());
-
-        } catch (InterruptedException | ExecutionException | IOException e) {
-            // TODO Auto-generated catch block
-            logger.error("Failed to connect", e);
-        }
-    }
-
-    private AsyncHttpClientConfig createAsyncHttpClientConfig() {
-        Builder builder = new AsyncHttpClientConfig.Builder();
-        builder.setRequestTimeoutInMs(REQUEST_TIMEOUT_MS);
-        builder.setUseRawUrl(true);
-        return builder.build();
-    }
-
-    void refreshDeviceList() {
+    synchronized void refreshDeviceList() {
         updateDevices(deviceList);
 
         updateSensors(sensorList);
 
         logger.info("sensorList list " + sensorList.getSensors());
-        lastUpdate = System.currentTimeMillis() / 1000L;
+        lastUpdate = ((System.currentTimeMillis() - 1000L) / 1000L);
     }
 
-    private void updateDevices(TellstickNetDevices previouslist) {
-        TellstickNetDevices newList = getDocument(HTTP_TELLDUS_DEVICES, TellstickNetDevices.class);
+    private synchronized void updateDevices(TellstickNetDevices previouslist) {
+        TellstickNetDevices newList = controller.callRestMethod(TelldusLiveDeviceController.HTTP_TELLDUS_DEVICES,
+                TellstickNetDevices.class);
         logger.info("Device list " + newList.getDevices());
         if (previouslist == null) {
             this.deviceList = newList;
@@ -170,8 +121,9 @@ public class TelldusLiveHandler extends BaseBridgeHandler implements TelldusBrid
         }
     }
 
-    private void updateSensors(TellstickNetSensors previouslist) {
-        TellstickNetSensors newList = getDocument(HTTP_TELLDUS_SENSORS, TellstickNetSensors.class);
+    private synchronized void updateSensors(TellstickNetSensors previouslist) {
+        TellstickNetSensors newList = controller.callRestMethod(TelldusLiveDeviceController.HTTP_TELLDUS_SENSORS,
+                TellstickNetSensors.class);
         if (previouslist == null) {
             this.sensorList = newList;
             for (TellstickNetSensor sensor : sensorList.getSensors()) {
@@ -185,20 +137,20 @@ public class TelldusLiveHandler extends BaseBridgeHandler implements TelldusBrid
                 sensor.setUpdated(false);
             }
             for (TellstickNetSensor sensor : newList.getSensors()) {
-                logger.info("sensor:" + sensor);
-                if (sensor.getLastUpdated() > lastUpdate) {
-                    int index = this.sensorList.getSensors().indexOf(sensor);
-
-                    if (index >= 0) {
-                        TellstickNetSensor orgSensor = this.sensorList.getSensors().get(index);
+                int index = this.sensorList.getSensors().indexOf(sensor);
+                if (index >= 0) {
+                    TellstickNetSensor orgSensor = this.sensorList.getSensors().get(index);
+                    if (sensor.getLastUpdated() > orgSensor.getLastUpdated()) {
+                        logger.info("Update for sensor:" + sensor);
                         orgSensor.setData(sensor.getData());
+                        orgSensor.setLastUpdated(sensor.getLastUpdated());
                         orgSensor.setUpdated(true);
-                    } else {
-                        this.sensorList.getSensors().add(sensor);
-                        sensor.setUpdated(true);
-                        for (DeviceStatusListener listener : deviceStatusListeners) {
-                            listener.onDeviceAdded(getThing(), sensor);
-                        }
+                    }
+                } else {
+                    this.sensorList.getSensors().add(sensor);
+                    sensor.setUpdated(true);
+                    for (DeviceStatusListener listener : deviceStatusListeners) {
+                        listener.onDeviceAdded(getThing(), sensor);
                     }
                 }
 
@@ -216,37 +168,6 @@ public class TelldusLiveHandler extends BaseBridgeHandler implements TelldusBrid
 
             }
         }
-    }
-
-    private <T> T getDocument(String uri, Class<T> response) {
-        try {
-            Future<Response> future = client.prepareGet(uri).execute();
-            Response resp = future.get(REQUEST_TIMEOUT_MS, TimeUnit.MILLISECONDS);
-            logger.info("Devices" + resp.getResponseBody());
-            JAXBContext jc = JAXBContext.newInstance(response);
-            XMLInputFactory xif = XMLInputFactory.newInstance();
-            XMLStreamReader xsr = xif.createXMLStreamReader(resp.getResponseBodyAsStream());
-            // xsr = new PropertyRenamerDelegate(xsr);
-
-            @SuppressWarnings("unchecked")
-            T obj = (T) jc.createUnmarshaller().unmarshal(xsr);
-
-            return obj;
-        } catch (JAXBException e) {
-            logger.warn("Encoding error in get", e);
-        } catch (XMLStreamException e) {
-            logger.warn("Communication error in get", e);
-        } catch (InterruptedException e) {
-            logger.warn("InterruptedException error in get", e);
-        } catch (ExecutionException e) {
-            logger.warn("ExecutionException error in get", e);
-        } catch (TimeoutException e) {
-            logger.warn("TimeoutException error in get", e);
-        } catch (IOException e) {
-            logger.warn("IOException error in get", e);
-        }
-
-        return null;
     }
 
     @Override
@@ -316,7 +237,14 @@ public class TelldusLiveHandler extends BaseBridgeHandler implements TelldusBrid
 
     @Override
     public Device getDevice(String serialNumber) {
-        return getDevice(serialNumber, deviceList.getDevices());
+        return getDevice(serialNumber, getDevices());
+    }
+
+    private List<TellstickNetDevice> getDevices() {
+        if (deviceList == null) {
+            refreshDeviceList();
+        }
+        return deviceList.getDevices();
     }
 
     @Override

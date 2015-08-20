@@ -95,7 +95,7 @@ public class TellstickBridgeDiscovery extends AbstractDiscoveryService {
                     e);
         } finally {
             // Close the port!
-            discoveryRunning = true;
+            discoveryRunning = false;
         }
     }
 
@@ -113,8 +113,7 @@ public class TellstickBridgeDiscovery extends AbstractDiscoveryService {
                 logger.info("Loading " + JNA.library + " from system default paths");
             }
             TellstickDevice.setSupportedMethods(JNA.CLibrary.TELLSTICK_BELL | JNA.CLibrary.TELLSTICK_TURNOFF
-                    | JNA.CLibrary.TELLSTICK_TURNON | JNA.CLibrary.TELLSTICK_DIM | JNA.CLibrary.TELLSTICK_LEARN
-                    | JNA.CLibrary.TELLSTICK_EXECUTE | JNA.CLibrary.TELLSTICK_STOP);
+                    | JNA.CLibrary.TELLSTICK_TURNON | JNA.CLibrary.TELLSTICK_DIM | JNA.CLibrary.TELLSTICK_STOP);
             JNA.CLibrary.INSTANCE.tdInit();
             initilized = true;
         }
@@ -122,7 +121,7 @@ public class TellstickBridgeDiscovery extends AbstractDiscoveryService {
     }
 
     private void discoveryResultSubmission(TellstickController controller, String configPath) {
-        if (controller != null) {
+        if (controller != null && controller.isOnline()) {
             logger.trace("Adding new Telldus Controller  {}", controller);
             Map<String, Object> properties = new HashMap<>(2);
             properties.put(TellstickBindingConstants.CONFIGPATH_ID, configPath);

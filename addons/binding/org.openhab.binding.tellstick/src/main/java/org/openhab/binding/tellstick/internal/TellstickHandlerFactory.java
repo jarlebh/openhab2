@@ -18,8 +18,8 @@ import org.eclipse.smarthome.core.thing.ThingTypeUID;
 import org.eclipse.smarthome.core.thing.binding.BaseThingHandlerFactory;
 import org.eclipse.smarthome.core.thing.binding.ThingHandler;
 import org.openhab.binding.tellstick.handler.TelldusBridgeHandler;
+import org.openhab.binding.tellstick.handler.TelldusDevicesHandler;
 import org.openhab.binding.tellstick.handler.core.TelldusCoreBridgeHandler;
-import org.openhab.binding.tellstick.handler.core.TelldusCoreDevicesHandler;
 import org.openhab.binding.tellstick.handler.live.TelldusLiveHandler;
 import org.openhab.binding.tellstick.internal.discovery.TellstickDiscoveryService;
 import org.osgi.framework.ServiceRegistration;
@@ -59,7 +59,7 @@ public class TellstickHandlerFactory extends BaseThingHandlerFactory {
             registerDeviceDiscoveryService(handler);
             return handler;
         } else if (supportsThingType(thing.getThingTypeUID())) {
-            return new TelldusCoreDevicesHandler(thing);
+            return new TelldusDevicesHandler(thing);
         } else {
             logger.debug("ThingHandler not found for {}", thing.getThingTypeUID());
             return null;

@@ -1,6 +1,17 @@
 package org.openhab.binding.tellstick.handler.live;
 
+import java.io.IOException;
 import java.math.BigDecimal;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+
+import javax.xml.bind.JAXBContext;
+import javax.xml.bind.JAXBException;
+import javax.xml.stream.XMLInputFactory;
+import javax.xml.stream.XMLStreamException;
+import javax.xml.stream.XMLStreamReader;
 
 import org.eclipse.smarthome.core.library.types.IncreaseDecreaseType;
 import org.eclipse.smarthome.core.library.types.OnOffType;
@@ -8,7 +19,6 @@ import org.eclipse.smarthome.core.library.types.PercentType;
 import org.eclipse.smarthome.core.types.Command;
 import org.eclipse.smarthome.core.types.State;
 import org.openhab.binding.tellstick.handler.TelldusDeviceController;
-import org.openhab.binding.tellstick.handler.core.TelldusCoreBridgeHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.tellstick.JNA;
@@ -18,17 +28,58 @@ import org.tellstick.device.TellstickException;
 import org.tellstick.device.TellstickSensorEvent;
 import org.tellstick.device.iface.Device;
 import org.tellstick.device.iface.DeviceChangeListener;
-import org.tellstick.device.iface.DimmableDevice;
 import org.tellstick.device.iface.SensorListener;
 import org.tellstick.device.iface.SwitchableDevice;
 
+import com.ning.http.client.AsyncHttpClient;
+import com.ning.http.client.AsyncHttpClientConfig;
+import com.ning.http.client.AsyncHttpClientConfig.Builder;
+import com.ning.http.client.Response;
+import com.ning.http.client.oauth.ConsumerKey;
+import com.ning.http.client.oauth.OAuthSignatureCalculator;
+import com.ning.http.client.oauth.RequestToken;
+import com.ning.http.client.providers.netty.NettyAsyncHttpProvider;
+
 public class TelldusLiveDeviceController implements DeviceChangeListener, SensorListener, TelldusDeviceController {
-    private static final Logger logger = LoggerFactory.getLogger(TelldusCoreBridgeHandler.class);
+    private static final Logger logger = LoggerFactory.getLogger(TelldusLiveDeviceController.class);
     private long lastSend = 0;
     long resendInterval = 100;
     public static final long DEFAULT_INTERVAL_BETWEEN_SEND = 250;
+    static final int REQUEST_TIMEOUT_MS = 5000;
+    AsyncHttpClient client;
+    static final String HTTP_API_TELLDUS_COM_XML = "http://api.telldus.com/xml/";
+    static final String HTTP_TELLDUS_CLIENTS = HTTP_API_TELLDUS_COM_XML + "clients/list";
+    static final String HTTP_TELLDUS_DEVICES = HTTP_API_TELLDUS_COM_XML + "devices/list?supportedMethods=19";
+    static final String HTTP_TELLDUS_SENSORS = HTTP_API_TELLDUS_COM_XML + "sensors/list?includeValues=1&includeScale=1";
+    static final String HTTP_TELLDUS_SENSOR_INFO = HTTP_API_TELLDUS_COM_XML + "sensor/info";
+    static final String HTTP_TELLDUS_DEVICE_DIM = HTTP_API_TELLDUS_COM_XML + "device/dim?id=%d&level=%d";
+    static final String HTTP_TELLDUS_DEVICE_TURNOFF = HTTP_API_TELLDUS_COM_XML + "device/turnOff?id=%d";
+    static final String HTTP_TELLDUS_DEVICE_TURNON = HTTP_API_TELLDUS_COM_XML + "device/turnOn?id=%d";
 
     public TelldusLiveDeviceController() {
+    }
+
+    void connectHttpClient(String publicKey, String privateKey, String token, String tokenSecret) {
+        ConsumerKey consumer = new ConsumerKey(publicKey, privateKey);
+        RequestToken user = new RequestToken(token, tokenSecret);
+        OAuthSignatureCalculator calc = new OAuthSignatureCalculator(consumer, user);
+        this.client = new AsyncHttpClient(new NettyAsyncHttpProvider(createAsyncHttpClientConfig()));
+        try {
+            this.client.setSignatureCalculator(calc);
+            Response response = client.prepareGet(HTTP_TELLDUS_CLIENTS).execute().get();
+            logger.info("Response " + response.getResponseBody() + " tt " + response.getStatusText());
+
+        } catch (InterruptedException | ExecutionException | IOException e) {
+            // TODO Auto-generated catch block
+            logger.error("Failed to connect", e);
+        }
+    }
+
+    private AsyncHttpClientConfig createAsyncHttpClientConfig() {
+        Builder builder = new AsyncHttpClientConfig.Builder();
+        builder.setRequestTimeoutInMs(REQUEST_TIMEOUT_MS);
+        builder.setUseRawUrl(true);
+        return builder.build();
     }
 
     /*
@@ -45,7 +96,7 @@ public class TelldusLiveDeviceController implements DeviceChangeListener, Sensor
         for (int i = 0; i < resendCount; i++) {
             checkLastAndWait(resendInterval);
             logger.info("Send " + command + " to " + device + " times=" + i);
-            if (device instanceof DimmableDevice) {
+            if (device instanceof TellstickNetDevice) {
                 if (command == OnOffType.ON) {
                     turnOn(device);
                 } else if (command == OnOffType.OFF) {
@@ -94,29 +145,42 @@ public class TelldusLiveDeviceController implements DeviceChangeListener, Sensor
         double value = command.doubleValue();
 
         // 0 means OFF and 100 means ON
-        if (value == 0 && dev instanceof SwitchableDevice) {
-            ((SwitchableDevice) dev).off();
-        } else if (value == 100 && dev instanceof SwitchableDevice) {
-            ((SwitchableDevice) dev).on();
-        } else if (dev instanceof DimmableDevice) {
+        if (value == 0 && dev instanceof TellstickNetDevice) {
+            turnOff(dev);
+        } else if (value == 100 && dev instanceof TellstickNetDevice) {
+            turnOn(dev);
+        } else if (dev instanceof TellstickNetDevice
+                && (((TellstickNetDevice) dev).getMethods() & JNA.CLibrary.TELLSTICK_DIM) > 0) {
             long tdVal = Math.round((value / 100) * 255);
-            ((DimmableDevice) dev).dim((int) tdVal);
+            TelldusLiveResponse response = callRestMethod(String.format(HTTP_TELLDUS_DEVICE_DIM, dev.getId(), tdVal),
+                    TelldusLiveResponse.class);
+            handleResponse(response);
         } else {
             throw new RuntimeException("Cannot send DIM to " + dev);
         }
     }
 
     private void turnOff(Device dev) throws TellstickException {
-        if (dev instanceof SwitchableDevice) {
-            ((SwitchableDevice) dev).off();
+        if (dev instanceof TellstickNetDevice) {
+            TelldusLiveResponse response = callRestMethod(String.format(HTTP_TELLDUS_DEVICE_TURNOFF, dev.getId()),
+                    TelldusLiveResponse.class);
+            handleResponse(response);
         } else {
             throw new RuntimeException("Cannot send OFF to " + dev);
         }
     }
 
+    private void handleResponse(TelldusLiveResponse response) {
+        if (!response.status.trim().equals("success")) {
+            throw new RuntimeException("Response " + response.status);
+        }
+    }
+
     private void turnOn(Device dev) throws TellstickException {
-        if (dev instanceof SwitchableDevice) {
-            ((SwitchableDevice) dev).on();
+        if (dev instanceof TellstickNetDevice) {
+            TelldusLiveResponse response = callRestMethod(String.format(HTTP_TELLDUS_DEVICE_TURNON, dev.getId()),
+                    TelldusLiveResponse.class);
+            handleResponse(response);
         } else {
             throw new RuntimeException("Cannot send ON to " + dev);
         }
@@ -182,12 +246,12 @@ public class TelldusLiveDeviceController implements DeviceChangeListener, Sensor
             case JNA.CLibrary.TELLSTICK_TURNOFF:
                 break;
             case JNA.CLibrary.TELLSTICK_DIM:
-                dimValue = new BigDecimal(((TellstickDevice) device).getData());
+                dimValue = new BigDecimal(((TellstickNetDevice) device).getStatevalue());
                 dimValue = dimValue.multiply(new BigDecimal(100));
                 dimValue = dimValue.divide(new BigDecimal(255), 0, BigDecimal.ROUND_HALF_UP);
                 break;
             default:
-                logger.warn("Could not handle {} for {}", ((TellstickDevice) device).getStatus(), device);
+                logger.warn("Could not handle {} for {}", (((TellstickNetDevice) device).getState()), device);
         }
         return dimValue;
     }
@@ -209,5 +273,36 @@ public class TelldusLiveDeviceController implements DeviceChangeListener, Sensor
     public void onRequest(TellstickDeviceEvent newDevices) {
         setLastSend(newDevices.getTimestamp());
 
+    }
+
+    <T> T callRestMethod(String uri, Class<T> response) {
+        try {
+            Future<Response> future = client.prepareGet(uri).execute();
+            Response resp = future.get(REQUEST_TIMEOUT_MS, TimeUnit.MILLISECONDS);
+            // TelldusLiveHandler.logger.info("Devices" + resp.getResponseBody());
+            JAXBContext jc = JAXBContext.newInstance(response);
+            XMLInputFactory xif = XMLInputFactory.newInstance();
+            XMLStreamReader xsr = xif.createXMLStreamReader(resp.getResponseBodyAsStream());
+            // xsr = new PropertyRenamerDelegate(xsr);
+
+            @SuppressWarnings("unchecked")
+            T obj = (T) jc.createUnmarshaller().unmarshal(xsr);
+
+            return obj;
+        } catch (JAXBException e) {
+            TelldusLiveHandler.logger.warn("Encoding error in get", e);
+        } catch (XMLStreamException e) {
+            TelldusLiveHandler.logger.warn("Communication error in get", e);
+        } catch (InterruptedException e) {
+            TelldusLiveHandler.logger.warn("InterruptedException error in get", e);
+        } catch (ExecutionException e) {
+            TelldusLiveHandler.logger.warn("ExecutionException error in get", e);
+        } catch (TimeoutException e) {
+            TelldusLiveHandler.logger.warn("TimeoutException error in get", e);
+        } catch (IOException e) {
+            TelldusLiveHandler.logger.warn("IOException error in get", e);
+        }
+
+        return null;
     }
 }

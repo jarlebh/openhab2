@@ -1,4 +1,4 @@
-package org.openhab.binding.tellstick.handler.core;
+package org.openhab.binding.tellstick.handler;
 
 import static org.openhab.binding.tellstick.TellstickBindingConstants.*;
 
@@ -19,8 +19,6 @@ import org.eclipse.smarthome.core.types.Command;
 import org.eclipse.smarthome.core.types.RefreshType;
 import org.eclipse.smarthome.core.types.State;
 import org.openhab.binding.tellstick.TellstickBindingConstants;
-import org.openhab.binding.tellstick.handler.DeviceStatusListener;
-import org.openhab.binding.tellstick.handler.TelldusBridgeHandler;
 import org.openhab.binding.tellstick.handler.live.DataTypeValue;
 import org.openhab.binding.tellstick.handler.live.TellstickNetSensor;
 import org.slf4j.Logger;
@@ -34,16 +32,16 @@ import org.tellstick.device.iface.TellstickEvent;
 import org.tellstick.enums.DataType;
 import org.tellstick.enums.DeviceType;
 
-public class TelldusCoreDevicesHandler extends BaseThingHandler
+public class TelldusDevicesHandler extends BaseThingHandler
         implements org.openhab.binding.tellstick.handler.DeviceStatusListener {
 
-    private Logger logger = LoggerFactory.getLogger(TelldusCoreDevicesHandler.class);
+    private Logger logger = LoggerFactory.getLogger(TelldusDevicesHandler.class);
     private String deviceId;
     private Boolean isDimmer = Boolean.FALSE;
     private int resend = 1;
     private TelldusBridgeHandler bridgeHandler = null;
 
-    public TelldusCoreDevicesHandler(Thing thing) {
+    public TelldusDevicesHandler(Thing thing) {
         super(thing);
     }
 

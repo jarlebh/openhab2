@@ -18,8 +18,10 @@ import org.eclipse.smarthome.core.thing.ThingTypeUID;
 import org.eclipse.smarthome.core.thing.ThingUID;
 import org.openhab.binding.tellstick.TellstickBindingConstants;
 import org.openhab.binding.tellstick.handler.TelldusBridgeHandler;
+import org.openhab.binding.tellstick.handler.live.TellstickNetDevice;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.tellstick.JNA;
 import org.tellstick.device.iface.Device;
 import org.tellstick.device.iface.DimmableDevice;
 import org.tellstick.device.iface.SwitchableDevice;
@@ -114,6 +116,14 @@ public class TellstickDiscoveryService extends AbstractDiscoveryService
                 } else if (device instanceof SwitchableDevice) {
                     thingUID = new ThingUID(TellstickBindingConstants.SWITCH_THING_TYPE, bridge.getUID(),
                             device.getUUId());
+                } else if (device instanceof TellstickNetDevice) {
+                    if ((((TellstickNetDevice) device).getMethods() & JNA.CLibrary.TELLSTICK_DIM) > 0) {
+                        thingUID = new ThingUID(TellstickBindingConstants.DIMMER_THING_TYPE, bridge.getUID(),
+                                device.getUUId());
+                    } else {
+                        thingUID = new ThingUID(TellstickBindingConstants.SWITCH_THING_TYPE, bridge.getUID(),
+                                device.getUUId());
+                    }
                 }
                 break;
             default:
