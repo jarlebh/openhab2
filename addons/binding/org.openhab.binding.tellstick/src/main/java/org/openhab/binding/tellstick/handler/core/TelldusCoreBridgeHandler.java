@@ -27,6 +27,7 @@ import org.openhab.binding.tellstick.handler.TelldusBridgeHandler;
 import org.openhab.binding.tellstick.handler.TelldusDeviceController;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.tellstick.JNA;
 import org.tellstick.device.SupportedMethodsException;
 import org.tellstick.device.TellsticEventHandler;
 import org.tellstick.device.TellstickDevice;
@@ -63,7 +64,7 @@ public class TelldusCoreBridgeHandler extends BaseBridgeHandler
     private List<TellstickDevice> deviceList = new Vector<TellstickDevice>();
     private List<TellstickSensor> sensorList = new Vector<TellstickSensor>();
     private TellsticEventHandler eventHandler;
-
+    private static boolean initialized = false;
     private List<DeviceStatusListener> deviceStatusListeners = new CopyOnWriteArrayList<>();
 
     @Override
@@ -84,13 +85,27 @@ public class TelldusCoreBridgeHandler extends BaseBridgeHandler
         super.dispose();
     }
 
+    private String init(String libraryPath) {
+        if (!initialized) {
+            if (libraryPath != null) {
+                logger.info("Loading " + JNA.library + " from " + libraryPath);
+                System.setProperty("jna.library.path", libraryPath);
+            } else {
+                logger.info("Loading " + JNA.library + " from system default paths");
+            }
+            TellstickDevice.setSupportedMethods(JNA.CLibrary.TELLSTICK_BELL | JNA.CLibrary.TELLSTICK_TURNOFF
+                    | JNA.CLibrary.TELLSTICK_TURNON | JNA.CLibrary.TELLSTICK_DIM);
+            JNA.CLibrary.INSTANCE.tdInit();
+            initialized = true;
+        }
+        return libraryPath;
+    }
+
     @Override
     public void initialize() {
         logger.debug("Initializing Tellstick bridge handler.");
         TellstickBridgeConfiguration configuration = getConfigAs(TellstickBridgeConfiguration.class);
-        // workaround for issue #92: getHandler() returns NULL after
-        // configuration update. :
-        getThing().setHandler(this);
+        init(configuration.libraryPath);
 
         rescanTelldusDevices();
         setupListeners();

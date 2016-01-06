@@ -10,8 +10,7 @@
 		</description>
 
 		<config-description>
-			<parameter name="location" type="text" required="false">
-				<context>location</context>
+			<parameter name="libraryPath" type="text" required="false">
 				<label>The location of Telldus Core DLL/SO</label>
 				<description>The location of Telldus Core DLL/SO
 				</description>

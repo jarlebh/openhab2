@@ -8,7 +8,9 @@
  */
 package org.openhab.binding.tellstick.internal.discovery;
 
+import java.util.List;
 import java.util.Set;
+import java.util.Vector;
 
 import org.eclipse.smarthome.config.discovery.AbstractDiscoveryService;
 import org.eclipse.smarthome.config.discovery.DiscoveryResult;
@@ -43,20 +45,24 @@ public class TellstickDiscoveryService extends AbstractDiscoveryService
 
     private final static Logger logger = LoggerFactory.getLogger(TellstickDiscoveryService.class);
 
-    private TelldusBridgeHandler telldusBridgeHandler;
+    private List<TelldusBridgeHandler> telldusBridgeHandlers = new Vector<TelldusBridgeHandler>();
 
     public TellstickDiscoveryService(TelldusBridgeHandler telldusBridgeHandler) {
         super(TellstickBindingConstants.SUPPORTED_DEVICE_THING_TYPES_UIDS, 10, true);
-        this.telldusBridgeHandler = telldusBridgeHandler;
+        this.telldusBridgeHandlers.add(telldusBridgeHandler);
     }
 
     public void activate() {
-        telldusBridgeHandler.registerDeviceStatusListener(this);
+        for (TelldusBridgeHandler telldusBridgeHandler : telldusBridgeHandlers) {
+            telldusBridgeHandler.registerDeviceStatusListener(this);
+        }
     }
 
     @Override
     public void deactivate() {
-        telldusBridgeHandler.unregisterDeviceStatusListener(this);
+        for (TelldusBridgeHandler telldusBridgeHandler : telldusBridgeHandlers) {
+            telldusBridgeHandler.unregisterDeviceStatusListener(this);
+        }
     }
 
     @Override
@@ -84,7 +90,9 @@ public class TellstickDiscoveryService extends AbstractDiscoveryService
 
     @Override
     protected void startScan() {
-        telldusBridgeHandler.rescanTelldusDevices();
+        for (TelldusBridgeHandler telldusBridgeHandler : telldusBridgeHandlers) {
+            telldusBridgeHandler.rescanTelldusDevices();
+        }
     }
 
     @Override
@@ -130,5 +138,9 @@ public class TellstickDiscoveryService extends AbstractDiscoveryService
                 break;
         }
         return thingUID;
+    }
+
+    public void addBridgeHandler(TelldusBridgeHandler tellstickBridgeHandler) {
+        telldusBridgeHandlers.add(tellstickBridgeHandler);
     }
 }

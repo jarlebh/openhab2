@@ -1,2 +1,6 @@
 yahooweather:weather:berlin [ location="638242" ]
 astro:sun:home  [ geolocation="52.5200066,13.4049540", interval=60 ]
+tellstick:telldus-live:3 [publicKey="FEHUVEW84RAFR5SP22RABURUPHAFRUNU",
+                privateKey="ZUXEVEGA9USTAZEWRETHAQUBUR69U6EF", token= "b45a435762b5106c6f08a6264d4f37be04eb1b902",
+                tokenSecret="b66e00e0bc1e33db24b4c8f59774fc8d"]
+tellstick:telldus-core:1

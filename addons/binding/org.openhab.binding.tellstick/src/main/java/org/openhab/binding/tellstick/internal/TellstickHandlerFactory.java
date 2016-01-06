@@ -35,6 +35,7 @@ import org.slf4j.LoggerFactory;
 public class TellstickHandlerFactory extends BaseThingHandlerFactory {
     private final static Logger logger = LoggerFactory.getLogger(TellstickHandlerFactory.class);
     private ServiceRegistration<?> discoveryServiceReg;
+    private TellstickDiscoveryService discoveryService = null;
 
     @Override
     public boolean supportsThingType(ThingTypeUID thingTypeUID) {
@@ -42,10 +43,15 @@ public class TellstickHandlerFactory extends BaseThingHandlerFactory {
     }
 
     private void registerDeviceDiscoveryService(TelldusBridgeHandler tellstickBridgeHandler) {
-        TellstickDiscoveryService discoveryService = new TellstickDiscoveryService(tellstickBridgeHandler);
-        discoveryService.activate();
-        this.discoveryServiceReg = bundleContext.registerService(DiscoveryService.class.getName(), discoveryService,
-                new Hashtable<String, Object>());
+        if (discoveryService == null) {
+            discoveryService = new TellstickDiscoveryService(tellstickBridgeHandler);
+            discoveryService.activate();
+            this.discoveryServiceReg = bundleContext.registerService(DiscoveryService.class.getName(), discoveryService,
+                    new Hashtable<String, Object>());
+        } else {
+            discoveryService.addBridgeHandler(tellstickBridgeHandler);
+        }
+
     }
 
     @Override

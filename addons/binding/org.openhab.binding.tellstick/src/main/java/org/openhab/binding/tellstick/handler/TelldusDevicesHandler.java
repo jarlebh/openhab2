@@ -207,12 +207,14 @@ public class TelldusDevicesHandler extends BaseThingHandler
     private void updateDeviceState(Device device) {
         if (device != null) {
             State st = getTellstickBridgeHandler().getController().calcState(device);
-            BigDecimal dimValue = getTellstickBridgeHandler().getController().calcDimValue(device);
-            updateState(new ChannelUID(getThing().getUID(), CHANNEL_STATE), st);
-            if (device instanceof DimmableDevice) {
-                updateState(new ChannelUID(getThing().getUID(), CHANNEL_DIMMER), new PercentType(dimValue));
+            if (st != null) {
+                BigDecimal dimValue = getTellstickBridgeHandler().getController().calcDimValue(device);
+                updateState(new ChannelUID(getThing().getUID(), CHANNEL_STATE), st);
+                if (device instanceof DimmableDevice) {
+                    updateState(new ChannelUID(getThing().getUID(), CHANNEL_DIMMER), new PercentType(dimValue));
+                }
+                updateStatus(ThingStatus.ONLINE);
             }
-            updateStatus(ThingStatus.ONLINE);
         } else {
             updateStatus(ThingStatus.REMOVED);
         }

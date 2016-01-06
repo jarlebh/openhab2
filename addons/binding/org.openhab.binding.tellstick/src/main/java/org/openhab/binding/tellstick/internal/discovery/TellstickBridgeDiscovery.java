@@ -22,11 +22,7 @@ import org.openhab.binding.tellstick.TellstickBindingConstants;
 //import org.openhab.binding.max.internal.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.tellstick.JNA;
 import org.tellstick.device.TellstickController;
-import org.tellstick.device.TellstickDevice;
-
-import com.sun.jna.Platform;
 
 /**
  * The {@link TellstickBridgeDiscovery} is responsible for discovering new MAX!
@@ -84,47 +80,25 @@ public class TellstickBridgeDiscovery extends AbstractDiscoveryService {
 
         try {
 
-            String libraryPath = init();
             List<TellstickController> cntrls = TellstickController.getControllers();
             for (TellstickController contrl : cntrls) {
-                discoveryResultSubmission(contrl, libraryPath);
+                discoveryResultSubmission(contrl);
             }
         } catch (UnsatisfiedLinkError e) {
             logger.error(
                     "Could not load telldus core, please make sure Telldus is installed and correct 32/64 bit java. ",
                     e);
+
         } finally {
             // Close the port!
             discoveryRunning = false;
         }
     }
 
-    private String init() {
-        String libraryPath = null;
-        if (!initilized) {
-            if (Platform.isWindows()) {
-                libraryPath = "C:/Program Files/Telldus/;C:/Program Files (x86)/Telldus/";
-            }
-
-            if (libraryPath != null) {
-                logger.info("Loading " + JNA.library + " from " + libraryPath);
-                System.setProperty("jna.library.path", libraryPath);
-            } else {
-                logger.info("Loading " + JNA.library + " from system default paths");
-            }
-            TellstickDevice.setSupportedMethods(JNA.CLibrary.TELLSTICK_BELL | JNA.CLibrary.TELLSTICK_TURNOFF
-                    | JNA.CLibrary.TELLSTICK_TURNON | JNA.CLibrary.TELLSTICK_DIM | JNA.CLibrary.TELLSTICK_STOP);
-            JNA.CLibrary.INSTANCE.tdInit();
-            initilized = true;
-        }
-        return libraryPath;
-    }
-
-    private void discoveryResultSubmission(TellstickController controller, String configPath) {
+    private void discoveryResultSubmission(TellstickController controller) {
         if (controller != null && controller.isOnline()) {
             logger.trace("Adding new Telldus Controller  {}", controller);
             Map<String, Object> properties = new HashMap<>(2);
-            properties.put(TellstickBindingConstants.CONFIGPATH_ID, configPath);
             ThingUID uid = new ThingUID(TellstickBindingConstants.TELLDUSCOREBRIDGE_THING_TYPE,
                     Integer.toString(controller.getId()));
             if (uid != null) {

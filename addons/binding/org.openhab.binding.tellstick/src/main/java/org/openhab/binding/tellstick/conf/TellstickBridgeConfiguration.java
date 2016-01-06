@@ -17,8 +17,7 @@ package org.openhab.binding.tellstick.conf;
 
 public class TellstickBridgeConfiguration {
 
-    /** The unique id for a controller */
-    public String id;
-
     public int resendInterval;
+
+    public String libraryPath;
 }
