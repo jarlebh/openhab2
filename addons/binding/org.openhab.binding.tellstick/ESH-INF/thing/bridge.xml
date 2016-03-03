@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<thing:thing-descriptions bindingId="tellstick"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:thing="http://eclipse.org/smarthome/schemas/thing-description/v1.0.0"
+    xsi:schemaLocation="http://eclipse.org/smarthome/schemas/thing-description/v1.0.0 http://eclipse.org/smarthome/schemas/thing-description-1.0.0.xsd">
+
+	<bridge-type id="telldus-core">
+		<label>Telldus Center gateway</label>
+		<description>This bridge represents the telldus center.
+		</description>
+
+		<config-description>
+			<parameter name="libraryPath" type="text" required="false">
+				<label>The location of Telldus Core DLL/SO</label>
+				<description>The location of Telldus Core DLL/SO
+				</description>
+				<default>C:/Program Files/Telldus/;C:/Program Files (x86)/Telldus/</default>
+			</parameter>
+			<parameter name="resendInterval" type="integer" required="false">
+                <label>ResendInterval</label>
+                <description>The interval between resend.</description>
+                <default>100</default>
+            </parameter>
+		</config-description>
+
+	</bridge-type>
+	<bridge-type id="telldus-live">
+        <label>Telldus Live gateway</label>
+        <description>This bridge represents the telldus live service.
+        </description>
+
+        <config-description>
+            <parameter name="privateKey" type="text" required="true">
+                <context>credentials</context>
+                <label>OpenAuth private key from telldus</label>
+                <description>The private key from telldus</description>
+            </parameter>
+            <parameter name="publicKey" type="text" required="true">
+                <context>credentials</context>
+                <label>OpenAuth public key from telldus</label>
+                <description>The public key from telldus</description>
+            </parameter>
+            <parameter name="token" type="text" required="true">
+                <context>credentials</context>
+                <label>OpenAuth Token for access</label>
+                <description>The openauth token.</description>
+            </parameter>
+            <parameter name="tokenSecret" type="text" required="true">
+                <context>credentials</context>
+                <label>OpenAuth Token Secret for access</label>
+                <description>The openauth token secret.</description>
+            </parameter>
+            <parameter name="refreshInterval" type="integer" required="false">
+                <label>Refresh Interval</label>
+                <description>The refresh interval in ms which is used to poll Telldus Live.
+                </description>
+                <default>60000</default>
+            </parameter>
+        </config-description>
+
+    </bridge-type>
+</thing:thing-descriptions>
