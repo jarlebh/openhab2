@@ -5,7 +5,7 @@
         xsi:schemaLocation="http://eclipse.org/smarthome/schemas/binding/v1.0.0 http://eclipse.org/smarthome/schemas/binding-1.0.0.xsd">
 
     <name>Tellstick Binding</name>
-    <description>This is the binding for Telldus Tellstick Basic and Duo and .Net. www.telldus.com</description>
-    <author>jarlebh</author> 
+    <description>This is the binding for Telldus Tellstick Basic, Duo, .Net and Z-Net Lite. www.telldus.com</description>
+    <author>Jarle Hjortland</author> 
 
 </binding:binding>

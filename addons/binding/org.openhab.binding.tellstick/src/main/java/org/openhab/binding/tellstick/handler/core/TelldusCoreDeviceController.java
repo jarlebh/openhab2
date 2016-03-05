@@ -9,6 +9,9 @@
 package org.openhab.binding.tellstick.handler.core;
 
 import java.math.BigDecimal;
+import java.util.Collections;
+import java.util.SortedMap;
+import java.util.TreeMap;
 
 import org.eclipse.smarthome.core.library.types.IncreaseDecreaseType;
 import org.eclipse.smarthome.core.library.types.OnOffType;
@@ -43,104 +46,30 @@ public class TelldusCoreDeviceController implements DeviceChangeListener, Sensor
     long resendInterval = 100;
     public static final long DEFAULT_INTERVAL_BETWEEN_SEND = 250;
 
+    private TelldusCoreWorker telldusCoreWorker;
+    private Thread workerThread;
+    private SortedMap<Device, TelldusCoreSendEvent> messageQue;
+
     public TelldusCoreDeviceController(long resendInterval) {
         this.resendInterval = resendInterval;
+        messageQue = Collections.synchronizedSortedMap(new TreeMap<Device, TelldusCoreSendEvent>());
+        telldusCoreWorker = new TelldusCoreWorker(messageQue);
+        workerThread = new Thread(telldusCoreWorker);
     }
 
     @Override
-    public void handleSendEvent(Device device, int resendCount, boolean isdimmer, Command command)
+    public void handleSendEvent(Device device, int resendCount, boolean isDimmer, Command command)
             throws TellstickException {
 
-        for (int i = 0; i < resendCount; i++) {
-            checkLastAndWait(resendInterval);
-            logger.info("Send " + command + " to " + device + " times=" + i);
-            if (device instanceof DimmableDevice) {
-                if (command == OnOffType.ON) {
-                    turnOn(device);
-                } else if (command == OnOffType.OFF) {
-                    turnOff(device);
-                } else if (command instanceof PercentType) {
-                    dim(device, (PercentType) command);
-                } else if (command instanceof IncreaseDecreaseType) {
-                    increaseDecrease(device, ((IncreaseDecreaseType) command));
-                }
-            } else if (device instanceof SwitchableDevice) {
-                if (command == OnOffType.ON) {
-                    if (isdimmer) {
-                        logger.info("Turn off first in case it is allready on");
-                        turnOff(device);
-                        checkLastAndWait(resendInterval);
-                    }
-                    turnOn(device);
-                } else if (command == OnOffType.OFF) {
-                    turnOff(device);
-                }
-            } else {
-                logger.warn("Cannot send to " + device);
-            }
-
+        if (!workerThread.isAlive()) {
+            workerThread.start();
         }
 
-    }
-
-    private void increaseDecrease(Device dev, IncreaseDecreaseType increaseDecreaseType) throws TellstickException {
-        String strValue = ((TellstickDevice) dev).getData();
-        double value = 0;
-        if (strValue != null) {
-            value = Double.valueOf(strValue);
+        Long eventTime = System.currentTimeMillis();
+        synchronized (messageQue) {
+            messageQue.put(device, new TelldusCoreSendEvent(device, resendCount, isDimmer, command, eventTime));
+            messageQue.notify();
         }
-        int percent = (int) Math.round((value / 255) * 100);
-        if (IncreaseDecreaseType.INCREASE == increaseDecreaseType) {
-            percent = Math.min(percent + 10, 100);
-        } else if (IncreaseDecreaseType.DECREASE == increaseDecreaseType) {
-            percent = Math.max(percent - 10, 0);
-        }
-
-        dim(dev, new PercentType(percent));
-    }
-
-    private void dim(Device dev, PercentType command) throws TellstickException {
-        double value = command.doubleValue();
-
-        // 0 means OFF and 100 means ON
-        if (value == 0 && dev instanceof SwitchableDevice) {
-            ((SwitchableDevice) dev).off();
-        } else if (value == 100 && dev instanceof SwitchableDevice) {
-            ((SwitchableDevice) dev).on();
-        } else if (dev instanceof DimmableDevice) {
-            long tdVal = Math.round((value / 100) * 255);
-            ((DimmableDevice) dev).dim((int) tdVal);
-        } else {
-            throw new RuntimeException("Cannot send DIM to " + dev);
-        }
-    }
-
-    private void turnOff(Device dev) throws TellstickException {
-        if (dev instanceof SwitchableDevice) {
-            ((SwitchableDevice) dev).off();
-        } else {
-            throw new RuntimeException("Cannot send OFF to " + dev);
-        }
-    }
-
-    private void turnOn(Device dev) throws TellstickException {
-        if (dev instanceof SwitchableDevice) {
-            ((SwitchableDevice) dev).on();
-        } else {
-            throw new RuntimeException("Cannot send ON to " + dev);
-        }
-    }
-
-    private void checkLastAndWait(long resendInterval) {
-        while ((System.currentTimeMillis() - lastSend) < resendInterval) {
-            logger.info("Wait for " + resendInterval + " millisec");
-            try {
-                Thread.sleep(resendInterval);
-            } catch (InterruptedException e) {
-                logger.error("Failed to sleep", e);
-            }
-        }
-        lastSend = System.currentTimeMillis();
     }
 
     @Override
@@ -207,5 +136,207 @@ public class TelldusCoreDeviceController implements DeviceChangeListener, Sensor
     public void onRequest(TellstickDeviceEvent newDevices) {
         setLastSend(newDevices.getTimestamp());
 
+    }
+
+    private void sendEvent(Device device, int resendCount, boolean isdimmer, Command command)
+            throws TellstickException {
+        for (int i = 0; i < resendCount; i++) {
+            checkLastAndWait(resendInterval);
+            logger.info("Send " + command + " to " + device + " times=" + i);
+            if (device instanceof DimmableDevice) {
+                if (command == OnOffType.ON) {
+                    turnOn(device);
+                } else if (command == OnOffType.OFF) {
+                    turnOff(device);
+                } else if (command instanceof PercentType) {
+                    dim(device, (PercentType) command);
+                } else if (command instanceof IncreaseDecreaseType) {
+                    increaseDecrease(device, ((IncreaseDecreaseType) command));
+                }
+            } else if (device instanceof SwitchableDevice) {
+                if (command == OnOffType.ON) {
+                    if (isdimmer) {
+                        logger.info("Turn off first in case it is allready on");
+                        turnOff(device);
+                        checkLastAndWait(resendInterval);
+                    }
+                    turnOn(device);
+                } else if (command == OnOffType.OFF) {
+                    turnOff(device);
+                }
+            } else {
+                logger.warn("Cannot send to " + device);
+            }
+        }
+    }
+
+    private void increaseDecrease(Device dev, IncreaseDecreaseType increaseDecreaseType) throws TellstickException {
+        String strValue = ((TellstickDevice) dev).getData();
+        double value = 0;
+        if (strValue != null) {
+            value = Double.valueOf(strValue);
+        }
+        int percent = (int) Math.round((value / 255) * 100);
+        if (IncreaseDecreaseType.INCREASE == increaseDecreaseType) {
+            percent = Math.min(percent + 10, 100);
+        } else if (IncreaseDecreaseType.DECREASE == increaseDecreaseType) {
+            percent = Math.max(percent - 10, 0);
+        }
+
+        dim(dev, new PercentType(percent));
+    }
+
+    private void dim(Device dev, PercentType command) throws TellstickException {
+        double value = command.doubleValue();
+
+        // 0 means OFF and 100 means ON
+        if (value == 0 && dev instanceof SwitchableDevice) {
+            ((SwitchableDevice) dev).off();
+        } else if (value == 100 && dev instanceof SwitchableDevice) {
+            ((SwitchableDevice) dev).on();
+        } else if (dev instanceof DimmableDevice) {
+            long tdVal = Math.round((value / 100) * 255);
+            ((DimmableDevice) dev).dim((int) tdVal);
+        } else {
+            throw new RuntimeException("Cannot send DIM to " + dev);
+        }
+    }
+
+    private void turnOff(Device dev) throws TellstickException {
+        if (dev instanceof SwitchableDevice) {
+            ((SwitchableDevice) dev).off();
+        } else {
+            throw new RuntimeException("Cannot send OFF to " + dev);
+        }
+    }
+
+    private void turnOn(Device dev) throws TellstickException {
+        if (dev instanceof SwitchableDevice) {
+            ((SwitchableDevice) dev).on();
+        } else {
+            throw new RuntimeException("Cannot send ON to " + dev);
+        }
+    }
+
+    private void checkLastAndWait(long resendInterval) {
+        while ((System.currentTimeMillis() - lastSend) < resendInterval) {
+            logger.info("Wait for " + resendInterval + " millisec");
+            try {
+                Thread.sleep(resendInterval);
+            } catch (InterruptedException e) {
+                logger.error("Failed to sleep", e);
+            }
+        }
+        lastSend = System.currentTimeMillis();
+    }
+
+    /**
+     * This class is a worker which execute the commands sent to the TelldusCoreDeviceController.
+     * This enables separation between Telldus Core and OpenHAB for preventing latency on the bus.
+     * The Tellstick have an send pace of 4 Hz which is far slower then the bus itself.
+     *
+     * @author Elias Gabrielsson
+     *
+     */
+    private class TelldusCoreWorker implements Runnable {
+        private SortedMap<Device, TelldusCoreSendEvent> messageQue;
+
+        public TelldusCoreWorker(SortedMap<Device, TelldusCoreSendEvent> messageQue) {
+            this.messageQue = messageQue;
+        }
+
+        @Override
+        public void run() {
+            while (true) {
+                try {
+                    TelldusCoreSendEvent sendEvent;
+                    // Get event to send
+                    synchronized (messageQue) {
+                        while (messageQue.isEmpty()) {
+                            messageQue.wait();
+                        }
+                        sendEvent = messageQue.remove(messageQue.firstKey());
+                    }
+                    // Send event
+                    try {
+                        sendEvent(sendEvent.getDevice(), sendEvent.getResendCount(), sendEvent.getDimmer(),
+                                sendEvent.getCommand());
+                    } catch (TellstickException e) {
+                        logger.error("Failed to send msg:" + sendEvent.getCommand() + " to " + sendEvent.getDevice(),
+                                e);
+                    }
+
+                } catch (InterruptedException ie) {
+                    break; // Terminate
+                }
+            }
+        }
+    }
+
+    /**
+     * This is a wrapper class to enable queuing of send events between the controller and the working thread.
+     *
+     * @author Elias Gabrielsson
+     *
+     */
+    private class TelldusCoreSendEvent implements Comparable<TelldusCoreSendEvent> {
+        private Device device;
+        private int resendCount;
+        private boolean isDimmer;
+        private Command command;
+        private Long eventTime;
+
+        public TelldusCoreSendEvent(Device device, int resendCount, boolean isDimmer, Command command, Long eventTime) {
+            this.device = device;
+            this.resendCount = resendCount;
+            this.isDimmer = isDimmer;
+            this.command = command;
+            this.eventTime = eventTime;
+        }
+
+        public void setDevice(Device device) {
+            this.device = device;
+        }
+
+        public Device getDevice() {
+            return device;
+        }
+
+        public void setResendCount(int resendCount) {
+            this.resendCount = resendCount;
+        }
+
+        public int getResendCount() {
+            return resendCount;
+        }
+
+        public void setDimmer(boolean isDimmer) {
+            this.isDimmer = isDimmer;
+        }
+
+        public boolean getDimmer() {
+            return isDimmer;
+        }
+
+        public void setCommand(Command command) {
+            this.command = command;
+        }
+
+        public Command getCommand() {
+            return command;
+        }
+
+        public void setEventTime(Long eventTime) {
+            this.eventTime = eventTime;
+        }
+
+        public Long getEventTime() {
+            return eventTime;
+        }
+
+        @Override
+        public int compareTo(TelldusCoreSendEvent o) {
+            return eventTime.compareTo(o.getEventTime());
+        }
     }
 }
