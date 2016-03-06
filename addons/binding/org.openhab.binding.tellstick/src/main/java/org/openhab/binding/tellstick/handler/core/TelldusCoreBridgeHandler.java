@@ -77,6 +77,7 @@ public class TelldusCoreBridgeHandler extends BaseBridgeHandler
     @Override
     public void dispose() {
         logger.debug("Telldus Core Handler disposed.");
+        deviceController.dispose();
         eventHandler.remove();
         clearDeviceList();
         initialized = false;

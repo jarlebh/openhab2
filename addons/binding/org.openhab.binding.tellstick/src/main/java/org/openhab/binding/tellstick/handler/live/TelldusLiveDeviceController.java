@@ -76,6 +76,11 @@ public class TelldusLiveDeviceController implements DeviceChangeListener, Sensor
     public TelldusLiveDeviceController() {
     }
 
+    @Override
+    public void dispose() {
+        client.closeAsynchronously();
+    }
+
     void connectHttpClient(String publicKey, String privateKey, String token, String tokenSecret) {
         ConsumerKey consumer = new ConsumerKey(publicKey, privateKey);
         RequestToken user = new RequestToken(token, tokenSecret);

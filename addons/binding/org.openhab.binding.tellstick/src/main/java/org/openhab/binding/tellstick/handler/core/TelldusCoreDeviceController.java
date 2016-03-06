@@ -38,6 +38,7 @@ import org.tellstick.device.iface.SwitchableDevice;
  * library.
  *
  * @author Jarle Hjortland
+ * @author Elias Gabrielsson
  *
  */
 public class TelldusCoreDeviceController implements DeviceChangeListener, SensorListener, TelldusDeviceController {
@@ -55,6 +56,11 @@ public class TelldusCoreDeviceController implements DeviceChangeListener, Sensor
         messageQue = Collections.synchronizedSortedMap(new TreeMap<Device, TelldusCoreSendEvent>());
         telldusCoreWorker = new TelldusCoreWorker(messageQue);
         workerThread = new Thread(telldusCoreWorker);
+    }
+
+    @Override
+    public void dispose() {
+        workerThread.interrupt();
     }
 
     @Override
@@ -247,7 +253,7 @@ public class TelldusCoreDeviceController implements DeviceChangeListener, Sensor
 
         @Override
         public void run() {
-            while (true) {
+            while (!Thread.currentThread().isInterrupted()) {
                 try {
                     TelldusCoreSendEvent sendEvent;
                     // Get event to send
