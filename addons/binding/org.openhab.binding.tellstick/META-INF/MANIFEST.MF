@@ -25,12 +25,8 @@ Import-Package:
     org.eclipse.smarthome.core.thing.type,
     org.eclipse.smarthome.core.types,
     org.eclipse.smarthome.config.discovery,
- org.openhab.core.library.types,
- org.openhab.io.net.http,
  org.osgi.framework,
  org.slf4j,
- org.openhab.binding.tellstick,
- org.openhab.binding.tellstick.handler,
   org.hamcrest;core=split;resolution:=optional,
  org.junit;version="4.0.0";resolution:=optional
 Service-Component: OSGI-INF/*.xml
