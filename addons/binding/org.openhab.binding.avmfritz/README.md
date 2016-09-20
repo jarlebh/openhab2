@@ -62,21 +62,24 @@ If correct credentials are set in the bridge configuration, connected AHA device
 
 ## Full Example
 
-demo.things:
+demo.Things:
+
 ```
-Bridge avm:fritzbox:192.168.178.1 [ ipAddress="192.168.0.64" ] {
+Bridge avmfritz:fritzbox:1 [ ipAddress="192.168.xxx.xxx", password ="xxx", user="xxx" ] {
 	FRITZ_DECT_200 DECT1 [ ain="xxxxxxxxxxx" ]
 	FRITZ_Powerline_546E PL1 [ ain="yy:yy:yy:yy:yyy" ]
 }
 ```
 
 demo.items:
+
 ```
 Number Temp { channel="avmfritz:FRITZ_DECT_200:1:DECT1:temperature" }
 Switch Outlet2 { channel="avmfritz:FRITZ_Powerline_546E:1:PL1:outlet" }
 ```
 
 demo.sitemap:
+
 ```
 sitemap demo label="Main Menu"
 {

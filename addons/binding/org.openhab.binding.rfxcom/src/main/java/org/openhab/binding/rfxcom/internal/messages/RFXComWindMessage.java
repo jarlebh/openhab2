@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2010-2015, openHAB.org and others.
+ * Copyright (c) 2014-2016 by the respective copyright holders.
  *
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
@@ -29,12 +29,12 @@ public class RFXComWindMessage extends RFXComBaseMessage {
 
     public enum SubType {
         UNDEF(0),
-        WTGR800(1),
-        WGR800(2),
-        STR918_WGR918_WGR928(3),
-        TFA(4),
-        UPM_WDS500(5),
-        WS2300(6),
+        WIND1(1),
+        WIND2(2),
+        WIND3(3),
+        WIND4(4),
+        WIND5(5),
+        WIND6(6),
 
         UNKNOWN(255);
 
@@ -59,7 +59,7 @@ public class RFXComWindMessage extends RFXComBaseMessage {
 
     private final static List<RFXComValueSelector> supportedOutputValueSelectors = Arrays.asList();
 
-    public SubType subType = SubType.WTGR800;
+    public SubType subType = SubType.UNDEF;
     public int sensorId = 0;
     public double windDirection = 0;
     public double windSpeed = 0;
@@ -112,7 +112,7 @@ public class RFXComWindMessage extends RFXComBaseMessage {
         byte[] data = new byte[16];
 
         data[0] = 0x10;
-        data[1] = RFXComBaseMessage.PacketType.RAIN.toByte();
+        data[1] = RFXComBaseMessage.PacketType.WIND.toByte();
         data[2] = subType.toByte();
         data[3] = seqNbr;
         data[4] = (byte) ((sensorId & 0xFF00) >> 8);

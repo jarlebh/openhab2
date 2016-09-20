@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2014-2015 openHAB UG (haftungsbeschraenkt) and others.
+ * Copyright (c) 2014-2016 by the respective copyright holders.
  *
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
@@ -170,13 +170,13 @@ class HomekitThermostatImpl extends AbstractTemperatureHomekitAccessoryImpl<Grou
                 break;
         }
         StringItem item = getGenericItem(heatingCoolingModeItemName);
-        item.setState(new StringType(modeString));
+        item.send(new StringType(modeString));
     }
 
     @Override
     public void setTargetTemperature(Double value) throws Exception {
         NumberItem item = getGenericItem(targetTemperatureItemName);
-        item.setState(new DecimalType(BigDecimal.valueOf(convertFromCelsius(value))));
+        item.send(new DecimalType(BigDecimal.valueOf(convertFromCelsius(value))));
     }
 
     @Override

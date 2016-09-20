@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2014-2015 openHAB UG (haftungsbeschraenkt) and others.
+ * Copyright (c) 2014-2016 by the respective copyright holders.
  *
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
@@ -33,6 +33,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang.ArrayUtils;
 import org.eclipse.smarthome.config.core.ConfigConstants;
 import org.eclipse.smarthome.core.events.EventPublisher;
 import org.eclipse.smarthome.core.items.Item;
@@ -41,7 +42,9 @@ import org.eclipse.smarthome.core.items.ItemRegistry;
 import org.eclipse.smarthome.core.items.events.ItemEventFactory;
 import org.eclipse.smarthome.core.library.types.DecimalType;
 import org.eclipse.smarthome.core.library.types.OnOffType;
+import org.eclipse.smarthome.core.types.Command;
 import org.eclipse.smarthome.core.types.State;
+import org.eclipse.smarthome.core.types.TypeParser;
 import org.openhab.io.hueemulation.internal.api.HueCreateUser;
 import org.openhab.io.hueemulation.internal.api.HueDataStore;
 import org.openhab.io.hueemulation.internal.api.HueDevice;
@@ -65,7 +68,6 @@ public class HueEmulationServlet extends HttpServlet {
     private Logger logger = LoggerFactory.getLogger(HueEmulationServlet.class);
     private static final String CONFIG_PAIRING_ENABLED = "pairingEnabled";
     private static final String PATH = "/api";
-    private static final String HOMEKIT_PREFIX = "homekit:";
     private static final String METHOD_POST = "POST";
     private static final String METHOD_PUT = "PUT";
     private static final String APPLICATION_XML = "application/xml";
@@ -77,6 +79,8 @@ public class HueEmulationServlet extends HttpServlet {
             ConfigConstants.getUserDataFolder() + File.separator + "hueemulation" + File.separator + "usernames");
     private static final File UDN_FILE = new File(
             ConfigConstants.getUserDataFolder() + File.separator + "hueemulation" + File.separator + "udn");
+
+    private static final String[] SUPPORTED_TAGS = new String[] { "Switchable", "Lighting", "TargetTemperature" };
 
     /**
      * This parses "/api/{username}/{lights}/{id}/{state}"
@@ -252,15 +256,17 @@ public class HueEmulationServlet extends HttpServlet {
         }
         try {
             // will throw exception if not found
-            itemRegistry.getItem(id);
+            Item item = itemRegistry.getItem(id);
             HueState state = gson.fromJson(req.getReader(), HueState.class);
             logger.debug("State " + state);
+            String value;
             if (state.bri > -1) {
-                eventPublisher.post(ItemEventFactory.createCommandEvent(id,
-                        new DecimalType((int) Math.round(state.bri / 255.0 * 100))));
+                value = String.valueOf(Math.round(state.bri / 255.0 * 100));
             } else {
-                eventPublisher.post(ItemEventFactory.createCommandEvent(id, state.on ? OnOffType.ON : OnOffType.OFF));
+                value = state.on ? "ON" : "OFF";
             }
+            Command command = TypeParser.parseCommand(item.getAcceptedCommandTypes(), value);
+            eventPublisher.post(ItemEventFactory.createCommandEvent(id, command));
             PrintWriter out = resp.getWriter();
             out.write(String.format(STATE_RESP, id, String.valueOf(state.on)));
             out.close();
@@ -420,9 +426,9 @@ public class HueEmulationServlet extends HttpServlet {
     }
 
     /**
-     * Converts an VoiceItem to a HueDevice
+     * Converts an Item to a HueDevice
      *
-     * @param voiceItem
+     * @param item
      * @return
      *         HueDevice
      */
@@ -448,7 +454,7 @@ public class HueEmulationServlet extends HttpServlet {
         Collection<Item> items = new LinkedList<Item>();
         for (Item item : itemRegistry.getItems()) {
             for (String tag : item.getTags()) {
-                if (tag.startsWith(HOMEKIT_PREFIX)) {
+                if (ArrayUtils.contains(SUPPORTED_TAGS, tag)) {
                     items.add(item);
                     break;
                 }

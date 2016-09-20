@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2010-2015, openHAB.org and others.
+ * Copyright (c) 2014-2016 by the respective copyright holders.
  *
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
@@ -31,8 +31,8 @@ import org.openhab.binding.rfxcom.internal.exceptions.RFXComException;
 public class RFXComThermostat1Message extends RFXComBaseMessage {
 
     public enum SubType {
-        DIGIMAX_TLX7506(0),
-        DIGIMAX_SHORT_FORMAT(1),
+        DIGIMAX(0),
+        DIGIMAX_SHORT(1),
 
         UNKNOWN(255);
 
@@ -103,7 +103,7 @@ public class RFXComThermostat1Message extends RFXComBaseMessage {
 
     private final static List<RFXComValueSelector> supportedOutputValueSelectors = Arrays.asList();
 
-    public SubType subType = SubType.DIGIMAX_TLX7506;
+    public SubType subType = SubType.DIGIMAX;
     public int sensorId = 0;
     public byte temperature = 0;
     public byte set = 0;

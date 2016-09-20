@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2014-2015 openHAB UG (haftungsbeschraenkt) and others.
+ * Copyright (c) 2014-2016 by the respective copyright holders.
  *
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
@@ -10,6 +10,7 @@ package org.openhab.binding.hdanywhere.handler;
 
 import static org.apache.commons.lang.StringUtils.isNotBlank;
 
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
@@ -22,6 +23,7 @@ import org.eclipse.smarthome.core.thing.Thing;
 import org.eclipse.smarthome.core.thing.ThingStatus;
 import org.eclipse.smarthome.core.thing.binding.BaseThingHandler;
 import org.eclipse.smarthome.core.types.Command;
+import org.eclipse.smarthome.core.types.RefreshType;
 import org.eclipse.smarthome.io.net.http.HttpUtil;
 import org.openhab.binding.hdanywhere.HDanywhereBindingConstants.Port;
 import org.slf4j.Logger;
@@ -93,35 +95,44 @@ public class HDanywhereHandler extends BaseThingHandler {
     @Override
     public void handleCommand(ChannelUID channelUID, Command command) {
 
-        String channelID = channelUID.getId();
-
-        String host = (String) getConfig().get(IP_ADDRESS);
-        int numberOfPorts = ((BigDecimal) getConfig().get(PORTS)).intValue();
-        int sourcePort = Integer.valueOf(command.toString());
-        int outputPort = Port.get(channelID).toNumber();
-
-        if (sourcePort > numberOfPorts) {
-            // nice try - we can switch to a port that does not physically exist
-            logger.warn("Source port {} goes beyond the physical number of {} ports available on the matrix {}",
-                    new Object[] { sourcePort, numberOfPorts, host });
-        } else if (outputPort > numberOfPorts) {
-            // nice try - we can switch to a port that does not physically exist
-            logger.warn("Output port {} goes beyond the physical number of {} ports available on the matrix {}",
-                    new Object[] { outputPort, numberOfPorts, host });
+        if (command instanceof RefreshType) {
+            // Simply schedule a single run of the polling runnable to refresh all channels
+            scheduler.schedule(pollingRunnable, 0, TimeUnit.SECONDS);
         } else {
 
-            String httpMethod = "GET";
-            String url = "http://" + host + "/switch.cgi?command=3&data0=";
+            String channelID = channelUID.getId();
 
-            url = url + String.valueOf(outputPort) + "&data1=";
-            url = url + command.toString() + "&checksum=";
+            String host = (String) getConfig().get(IP_ADDRESS);
+            int numberOfPorts = ((BigDecimal) getConfig().get(PORTS)).intValue();
+            int sourcePort = Integer.valueOf(command.toString());
+            int outputPort = Port.get(channelID).toNumber();
 
-            int checksum = 3 + outputPort + sourcePort;
-            url = url + String.valueOf(checksum);
+            if (sourcePort > numberOfPorts) {
+                // nice try - we can switch to a port that does not physically exist
+                logger.warn("Source port {} goes beyond the physical number of {} ports available on the matrix {}",
+                        new Object[] { sourcePort, numberOfPorts, host });
+            } else if (outputPort > numberOfPorts) {
+                // nice try - we can switch to a port that does not physically exist
+                logger.warn("Output port {} goes beyond the physical number of {} ports available on the matrix {}",
+                        new Object[] { outputPort, numberOfPorts, host });
+            } else {
 
-            HttpUtil.executeUrl(httpMethod, url, null, null, null, timeout);
+                String httpMethod = "GET";
+                String url = "http://" + host + "/switch.cgi?command=3&data0=";
+
+                url = url + String.valueOf(outputPort) + "&data1=";
+                url = url + command.toString() + "&checksum=";
+
+                int checksum = 3 + outputPort + sourcePort;
+                url = url + String.valueOf(checksum);
+
+                try {
+                    HttpUtil.executeUrl(httpMethod, url, null, null, null, timeout);
+                } catch (IOException e) {
+                    logger.error("Communication with device failed: {}", e);
+                }
+            }
         }
-
     }
 
     @Override

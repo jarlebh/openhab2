@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2010-2015, openHAB.org and others.
+ * Copyright (c) 2014-2016 by the respective copyright holders.
  *
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
@@ -39,6 +39,7 @@ public class RFXComLighting2Message extends RFXComBaseMessage {
         AC(0),
         HOME_EASY_EU(1),
         ANSLUT(2),
+        KAMBROOK(3),
 
         UNKNOWN(255);
 
@@ -176,7 +177,7 @@ public class RFXComLighting2Message extends RFXComBaseMessage {
 
     /**
      * Convert a 0-15 scale value to a percent type.
-     * 
+     *
      * @param pt
      *            percent type to convert
      * @return converted value 0-15
@@ -188,7 +189,7 @@ public class RFXComLighting2Message extends RFXComBaseMessage {
 
     /**
      * Convert a 0-15 scale value to a percent type.
-     * 
+     *
      * @param pt
      *            percent type to convert
      * @return converted value 0-15

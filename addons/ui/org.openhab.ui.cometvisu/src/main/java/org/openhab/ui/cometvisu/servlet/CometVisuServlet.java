@@ -1,5 +1,6 @@
 /**
- * Copyright (c) 2014-2015 openHAB UG (haftungsbeschraenkt) and others.
+ * Copyright (c) 2014-2016 by the respective copyright holders.
+ *
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
  * which accompanies this distribution, and is available at
@@ -58,11 +59,10 @@ import org.openhab.ui.cometvisu.internal.config.VisuConfig;
 import org.openhab.ui.cometvisu.internal.editor.dataprovider.beans.DataBean;
 import org.openhab.ui.cometvisu.internal.editor.dataprovider.beans.ItemBean;
 import org.openhab.ui.cometvisu.internal.rrs.beans.Feed;
-import org.openhab.ui.cometvisu.servlet.quercus.PHProvider;
+import org.openhab.ui.cometvisu.php.PHProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.caucho.quercus.QuercusEngine;
 import com.google.gson.Gson;
 
 /**
@@ -110,14 +110,25 @@ public class CometVisuServlet extends HttpServlet {
         defaultUserDir = System.getProperty("user.dir");
         this.cometVisuApp = cometVisuApp;
 
+        PHProvider prov = cometVisuApp.getPHProvider();
+        if (prov != null) {
+            this.setPHProvider(prov);
+        }
+    }
+
+    public void setPHProvider(PHProvider prov) {
+        this.engine = prov;
         this.initQuercusEngine();
+    }
+
+    public void unsetPHProvider() {
+        this.engine = null;
+        this.phpEnabled = false;
     }
 
     private void initQuercusEngine() {
         try {
-            // for some reason the QuercusEngine must be created here, because otherwise the modules are not loaded
-            // and quercus is useless
-            engine = new PHProvider(new QuercusEngine());
+            this.engine.createQuercusEngine();
             this.engine.setIni("include_path", ".:" + rootFolder.getAbsolutePath());
             if (_servletContext != null) {
                 this.engine.init(rootFolder.getAbsolutePath(), defaultUserDir, _servletContext);
@@ -205,7 +216,10 @@ public class CometVisuServlet extends HttpServlet {
 
                     return;
                 } else {
-                    throw new ServletException("Sitemap '" + matcher.group(1) + "' could not be found");
+                    logger.debug("Config file not found. Neither as normal config ('{}') nor as sitemap ('{}.sitemap')",
+                            requestedFile, matcher.group(2));
+                    resp.sendError(HttpServletResponse.SC_NOT_FOUND);
+                    return;
                 }
             }
         }
@@ -375,7 +389,7 @@ public class CometVisuServlet extends HttpServlet {
                     }
                     if (it.hasNext()) {
                         logger.debug("persisted data for item {} found in service {}", item.getName(),
-                                persistenceService.getName());
+                                persistenceService.getId());
                     }
 
                     // Iterate through the data
@@ -411,7 +425,7 @@ public class CometVisuServlet extends HttpServlet {
                         }
                         feed.entries.add(entry);
                     }
-                    if ("rrd4j".equals(persistenceService.getName())
+                    if ("rrd4j".equals(persistenceService.getId())
                             && FilterCriteria.Ordering.DESCENDING.equals(filter.getOrdering())) {
                         // the RRD4j PersistenceService does not support descending ordering so we do it manually
                         Collections.sort(feed.entries,
@@ -424,7 +438,7 @@ public class CometVisuServlet extends HttpServlet {
                                 });
                     }
                     logger.debug("querying {} item from {} to {} => {} results on service {}", filter.getItemName(),
-                            filter.getBeginDate(), filter.getEndDate(), i, persistenceService.getName());
+                            filter.getBeginDate(), filter.getEndDate(), i, persistenceService.getId());
                 }
                 if (request.getParameter("j") != null) {
                     // request data in JSON format
@@ -672,8 +686,6 @@ public class CometVisuServlet extends HttpServlet {
             disposition = accept != null && accepts(accept, contentType) ? "inline" : "attachment";
         }
 
-        // Initialize response.
-        response.reset();
         response.setBufferSize(DEFAULT_BUFFER_SIZE);
         response.setHeader("Content-Disposition", disposition + ";filename=\"" + fileName + "\"");
         response.setHeader("Accept-Ranges", "bytes");
@@ -867,7 +879,9 @@ public class CometVisuServlet extends HttpServlet {
                     return name.endsWith(".png");
                 }
             };
-            for (File iconFile : iconDir.listFiles(filter)) {
+            File[] icons = iconDir.listFiles(filter);
+            Arrays.sort(icons);
+            for (File iconFile : icons) {
                 if (iconFile.isFile()) {
                     String iconName = iconFile.getName().replace(".png", "");
                     DataBean bean = new DataBean();
@@ -879,8 +893,10 @@ public class CometVisuServlet extends HttpServlet {
         } else if (file.getName().equals("list_all_plugins.php")) {
             // all plugins
             // all item names
-            File iconDir = new File(rootFolder, "plugins/");
-            for (File icon : iconDir.listFiles()) {
+            File pluginDir = new File(rootFolder, "plugins/");
+            File[] plugins = pluginDir.listFiles();
+            Arrays.sort(plugins);
+            for (File icon : plugins) {
                 if (icon.isDirectory()) {
                     DataBean bean = new DataBean();
                     bean.label = icon.getName();
@@ -892,7 +908,9 @@ public class CometVisuServlet extends HttpServlet {
         } else if (file.getName().equals("get_designs.php")) {
             // all designs
             File designDir = new File(rootFolder, "designs/");
-            for (File design : designDir.listFiles()) {
+            File[] designs = designDir.listFiles();
+            Arrays.sort(designs);
+            for (File design : designs) {
                 if (design.isDirectory()) {
                     beans.add(design.getName());
                 }
