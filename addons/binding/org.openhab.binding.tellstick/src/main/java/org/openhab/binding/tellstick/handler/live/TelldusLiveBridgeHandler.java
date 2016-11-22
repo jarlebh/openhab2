@@ -107,7 +107,7 @@ public class TelldusLiveBridgeHandler extends BaseBridgeHandler implements Telld
     private synchronized void updateDevices(TellstickNetDevices previouslist) {
         TellstickNetDevices newList = controller.callRestMethod(TelldusLiveDeviceController.HTTP_TELLDUS_DEVICES,
                 TellstickNetDevices.class);
-        logger.info("Device list " + newList.getDevices());
+        logger.debug("Device list " + newList.getDevices());
         if (previouslist == null) {
             logger.debug("updateDevices, Creating devices.");
             for (TellstickNetDevice device : newList.getDevices()) {

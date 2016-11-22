@@ -8,7 +8,6 @@
  */
 package org.openhab.binding.tellstick.handler.live;
 
-import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -21,6 +20,15 @@ import javax.xml.stream.XMLInputFactory;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;
 
+import org.asynchttpclient.AsyncHttpClient;
+import org.asynchttpclient.AsyncHttpClientConfig;
+import org.asynchttpclient.DefaultAsyncHttpClient;
+import org.asynchttpclient.DefaultAsyncHttpClientConfig;
+import org.asynchttpclient.DefaultAsyncHttpClientConfig.Builder;
+import org.asynchttpclient.Response;
+import org.asynchttpclient.oauth.ConsumerKey;
+import org.asynchttpclient.oauth.OAuthSignatureCalculator;
+import org.asynchttpclient.oauth.RequestToken;
 import org.eclipse.smarthome.core.library.types.IncreaseDecreaseType;
 import org.eclipse.smarthome.core.library.types.OnOffType;
 import org.eclipse.smarthome.core.library.types.PercentType;
@@ -40,15 +48,6 @@ import org.tellstick.device.iface.Device;
 import org.tellstick.device.iface.DeviceChangeListener;
 import org.tellstick.device.iface.SensorListener;
 import org.tellstick.device.iface.SwitchableDevice;
-
-import com.ning.http.client.AsyncHttpClient;
-import com.ning.http.client.AsyncHttpClientConfig;
-import com.ning.http.client.AsyncHttpClientConfig.Builder;
-import com.ning.http.client.Response;
-import com.ning.http.client.oauth.ConsumerKey;
-import com.ning.http.client.oauth.OAuthSignatureCalculator;
-import com.ning.http.client.oauth.RequestToken;
-import com.ning.http.client.providers.netty.NettyAsyncHttpProvider;
 
 /**
  * {@link TelldusLiveDeviceController} is the communication with Telldus Live service (Tellstick.NET and ZNET)
@@ -80,22 +79,22 @@ public class TelldusLiveDeviceController implements DeviceChangeListener, Sensor
         ConsumerKey consumer = new ConsumerKey(publicKey, privateKey);
         RequestToken user = new RequestToken(token, tokenSecret);
         OAuthSignatureCalculator calc = new OAuthSignatureCalculator(consumer, user);
-        this.client = new AsyncHttpClient(new NettyAsyncHttpProvider(createAsyncHttpClientConfig()));
+        this.client = new DefaultAsyncHttpClient(createAsyncHttpClientConfig());
         try {
             this.client.setSignatureCalculator(calc);
             Response response = client.prepareGet(HTTP_TELLDUS_CLIENTS).execute().get();
             logger.info("Response " + response.getResponseBody() + " tt " + response.getStatusText());
 
-        } catch (InterruptedException | ExecutionException | IOException e) {
+        } catch (InterruptedException | ExecutionException e) {
             // TODO Auto-generated catch block
             logger.error("Failed to connect", e);
         }
     }
 
     private AsyncHttpClientConfig createAsyncHttpClientConfig() {
-        Builder builder = new AsyncHttpClientConfig.Builder();
-        builder.setRequestTimeoutInMs(REQUEST_TIMEOUT_MS);
-        builder.setUseRawUrl(true);
+        Builder builder = new DefaultAsyncHttpClientConfig.Builder();
+        builder.setConnectTimeout(REQUEST_TIMEOUT_MS);
+        // builder.setUseRawUrl(true);
         return builder.build();
     }
 
@@ -117,15 +116,7 @@ public class TelldusLiveDeviceController implements DeviceChangeListener, Sensor
         } else if (device instanceof SwitchableDevice) {
             if (command == OnOffType.ON) {
                 if (isdimmer) {
-                    logger.info/**
-                                * Copyright (c)2016 openHAB UG (haftungsbeschraenkt) and others.
-                                *
-                                * All rights reserved. This program and the accompanying materials
-                                * are made available under the terms of the Eclipse Public License v1.0
-                                * which accompanies this distribution, and is available at
-                                * http://www.eclipse.org/legal/epl-v10.html
-                                */
-                    ("Turn off first in case it is allready on");
+                    logger.info("Turn off first in case it is allready on");
                     turnOff(device);
                 }
                 turnOn(device);
@@ -220,18 +211,6 @@ public class TelldusLiveDeviceController implements DeviceChangeListener, Sensor
         } else {
             throw new RuntimeException("Cannot send ON to " + dev);
         }
-    }
-
-    private void checkLastAndWait(long resendInterval) {
-        while ((System.currentTimeMillis() - lastSend) < resendInterval) {
-            logger.info("Wait for " + resendInterval + " millisec");
-            try {
-                Thread.sleep(resendInterval);
-            } catch (InterruptedException e) {
-                logger.error("Failed to sleep", e);
-            }
-        }
-        lastSend = System.currentTimeMillis();
     }
 
     /*
@@ -339,8 +318,6 @@ public class TelldusLiveDeviceController implements DeviceChangeListener, Sensor
             logger.warn("ExecutionException error in get", e);
         } catch (TimeoutException e) {
             logger.warn("TimeoutException error in get", e);
-        } catch (IOException e) {
-            logger.warn("IOException error in get", e);
         }
 
         return null;

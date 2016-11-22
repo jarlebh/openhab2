@@ -55,9 +55,19 @@ public class TelldusDevicesHandler extends BaseThingHandler
     private Boolean isDimmer = Boolean.FALSE;
     private int resend = 1;
     private TelldusBridgeHandler bridgeHandler = null;
+    private final ChannelUID stateChannel;
+    private final ChannelUID dimChannel;
+    private final ChannelUID humidityChannel;
+    private final ChannelUID tempChannel;
+    private final ChannelUID timestampChannel;
 
     public TelldusDevicesHandler(Thing thing) {
         super(thing);
+        stateChannel = new ChannelUID(getThing().getUID(), CHANNEL_STATE);
+        dimChannel = new ChannelUID(getThing().getUID(), CHANNEL_DIMMER);
+        humidityChannel = new ChannelUID(getThing().getUID(), CHANNEL_HUMIDITY);
+        tempChannel = new ChannelUID(getThing().getUID(), CHANNEL_TEMPERATURE);
+        timestampChannel = new ChannelUID(getThing().getUID(), CHANNEL_TIMESTAMP);
     }
 
     @Override
@@ -68,16 +78,16 @@ public class TelldusDevicesHandler extends BaseThingHandler
             logger.warn("Tellstick bridge handler not found. Cannot handle command without bridge.");
             return;
         }
-        if (command instanceof RefreshType) {
-            bridgeHandler.handleCommand(channelUID, command);
-            return;
-        }
-        Device dev = bridgeHandler.getDevice(deviceId);
+        Device dev = getDevice(bridgeHandler, deviceId);
+
         if (dev == null) {
             logger.warn("Device not found. Can't send command to device '{}'", deviceId);
             return;
         }
-
+        if (command instanceof RefreshType) {
+            refreshDevice(dev);
+            return;
+        }
         if (channelUID.getId().equals(CHANNEL_DIMMER) || channelUID.getId().equals(CHANNEL_STATE)) {
             try {
                 if (dev.getDeviceType() == DeviceType.DEVICE) {
@@ -96,6 +106,14 @@ public class TelldusDevicesHandler extends BaseThingHandler
 
     }
 
+    private void refreshDevice(Device dev) {
+        if (deviceId != null && getThing().getThingTypeUID().equals(TellstickBindingConstants.SENSOR_THING_TYPE)) {
+            updateSensorStates(dev);
+        } else if (deviceId != null) {
+            updateDeviceState(dev);
+        }
+    }
+
     /**
      * {@inheritDoc}
      */
@@ -103,6 +121,7 @@ public class TelldusDevicesHandler extends BaseThingHandler
     public void initialize() {
 
         Configuration config = getConfig();
+        logger.debug("Initialize TelldusDeviceHandler {}. class {}", config, config.getClass());
         final Object configDeviceId = config.get(TellstickBindingConstants.DEVICE_ID);
         if (configDeviceId != null) {
             deviceId = configDeviceId.toString();
@@ -133,14 +152,7 @@ public class TelldusDevicesHandler extends BaseThingHandler
                 this.bridgeHandler = tellHandler;
                 this.bridgeHandler.registerDeviceStatusListener(this);
                 Configuration config = editConfiguration();
-                Device dev = null;
-                if (getThing().getThingTypeUID().equals(TellstickBindingConstants.SENSOR_THING_TYPE)) {
-                    dev = tellHandler.getSensor(deviceId);
-                    updateSensorStates(dev);
-                } else {
-                    dev = tellHandler.getDevice(deviceId);
-                    updateDeviceState(dev);
-                }
+                Device dev = getDevice(tellHandler, deviceId);
                 if (dev != null) {
                     if (dev.getName() != null) {
                         config.put(TellstickBindingConstants.DEVICE_NAME, dev.getName());
@@ -172,6 +184,17 @@ public class TelldusDevicesHandler extends BaseThingHandler
             logger.error("Failed to init bridge for " + deviceId, e);
             updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.HANDLER_INITIALIZING_ERROR);
         }
+    }
+
+    private Device getDevice(TelldusBridgeHandler tellHandler, String deviceId) {
+        Device dev = null;
+        if (deviceId != null && getThing().getThingTypeUID().equals(TellstickBindingConstants.SENSOR_THING_TYPE)) {
+            dev = tellHandler.getSensor(deviceId);
+        } else if (deviceId != null) {
+            dev = tellHandler.getDevice(deviceId);
+            updateDeviceState(dev);
+        }
+        return dev;
     }
 
     private void updateSensorStates(Device dev) {
@@ -227,7 +250,7 @@ public class TelldusDevicesHandler extends BaseThingHandler
             }
             Calendar cal = Calendar.getInstance();
             cal.setTimeInMillis(event.getTimestamp());
-            updateState(new ChannelUID(getThing().getUID(), CHANNEL_TIMESTAMP), new DateTimeType(cal));
+            updateState(timestampChannel, new DateTimeType(cal));
 
         }
     }
@@ -235,10 +258,10 @@ public class TelldusDevicesHandler extends BaseThingHandler
     private void updateSensorDateState(DataType dataType, String data) {
         switch (dataType) {
             case HUMIDITY:
-                updateState(new ChannelUID(getThing().getUID(), CHANNEL_HUMIDITY), new DecimalType(data));
+                updateState(humidityChannel, new DecimalType(data));
                 break;
             case TEMPERATURE:
-                updateState(new ChannelUID(getThing().getUID(), CHANNEL_TEMPERATURE), new DecimalType(data));
+                updateState(tempChannel, new DecimalType(data));
                 break;
             default:
         }
@@ -246,12 +269,18 @@ public class TelldusDevicesHandler extends BaseThingHandler
 
     private void updateDeviceState(Device device) {
         if (device != null) {
-            State st = getTellstickBridgeHandler().getController().calcState(device);
-            if (st != null) {
-                BigDecimal dimValue = getTellstickBridgeHandler().getController().calcDimValue(device);
-                updateState(new ChannelUID(getThing().getUID(), CHANNEL_STATE), st);
+            logger.debug("Updating state of {} {} ({}) id: {}", device.getDeviceType(), device.getName(),
+                    device.getUUId(), getThing().getUID());
+            TelldusBridgeHandler bridgeHandler = getTellstickBridgeHandler();
+            State st = null;
+            if (bridgeHandler != null && bridgeHandler.getController() != null) {
+                st = bridgeHandler.getController().calcState(device);
+            }
+            if (st != null && bridgeHandler != null) {
+                BigDecimal dimValue = bridgeHandler.getController().calcDimValue(device);
+                updateState(stateChannel, st);
                 if (device instanceof DimmableDevice) {
-                    updateState(new ChannelUID(getThing().getUID(), CHANNEL_DIMMER), new PercentType(dimValue));
+                    updateState(dimChannel, new PercentType(dimValue));
                 }
                 updateStatus(ThingStatus.ONLINE);
             } else {

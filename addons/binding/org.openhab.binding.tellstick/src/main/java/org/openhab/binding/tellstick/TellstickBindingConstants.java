@@ -28,8 +28,8 @@ public class TellstickBindingConstants {
     public static final String DEVICE_PROTOCOL = "protocol";
     public static final String DEVICE_MODEL = "model";
     public static final String DEVICE_NAME = "name";
-    public static final Object DEVICE_RESEND_COUNT = "resend";
-    public static final Object DEVICE_ISDIMMER = "dimmer";
+    public static final String DEVICE_RESEND_COUNT = "resend";
+    public static final String DEVICE_ISDIMMER = "dimmer";
     public static final String BRIDGE_TELLDUS_CORE = "telldus-core";
     public static final String BRIDGE_TELLDUS_LIVE = "telldus-live";
     public static final String DEVICE_SENSOR = "sensor";
