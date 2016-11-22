@@ -50,4 +50,11 @@ public interface TelldusDeviceController {
      */
     BigDecimal calcDimValue(Device device);
 
+    /**
+     *
+     * Clean up the device controller before shutdown.
+     *
+     */
+    void dispose();
+
 }
