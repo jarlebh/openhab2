@@ -8,6 +8,7 @@
  */
 package org.openhab.binding.tellstick.handler.live;
 
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -77,7 +78,11 @@ public class TelldusLiveDeviceController implements DeviceChangeListener, Sensor
 
     @Override
     public void dispose() {
-        client.closeAsynchronously();
+        try {
+            client.close();
+        } catch (IOException e) {
+            logger.error("Failed to disconnect", e);
+        }
     }
 
     void connectHttpClient(String publicKey, String privateKey, String token, String tokenSecret) {
