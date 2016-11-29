@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 
+import org.eclipse.smarthome.config.core.Configuration;
 import org.eclipse.smarthome.core.thing.Bridge;
 import org.eclipse.smarthome.core.thing.ChannelUID;
 import org.eclipse.smarthome.core.thing.Thing;
@@ -53,8 +54,7 @@ public class HeosBridgeHandler extends BaseBridgeHandler implements DeviceStatus
 
     @Override
     public void initialize() {
-        listener = new HeosListener((String) getConfig().get(IP_ADDRESS), this);
-        listener.start();
+        setupListener();
     }
 
     @Override
@@ -285,7 +285,7 @@ public class HeosBridgeHandler extends BaseBridgeHandler implements DeviceStatus
                 }
 
             }
-            updateStatus(ThingStatus.ONLINE);
+
         } else if (message.getHeos().getResult().contains("error")) {
             logger.error("Failed to get players", message);
             updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.COMMUNICATION_ERROR);
@@ -296,16 +296,65 @@ public class HeosBridgeHandler extends BaseBridgeHandler implements DeviceStatus
     public void listenerConnected() {
         logger.debug("listenerConnected");
         rescanHeosPlayers();
+        updateStatus(ThingStatus.ONLINE);
 
     }
 
     @Override
     public void listenerDisconnected() {
         logger.debug("listenerDisconnected");
+        updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.BRIDGE_OFFLINE);
     }
 
     public void unregisterDeviceStatusListener(DeviceStatusListener heosDiscoveryService) {
         deviceStatusListeners.remove(heosDiscoveryService);
+    }
+
+    /*
+     * (non-Javadoc)
+     *
+     * @see org.eclipse.smarthome.core.thing.binding.BaseThingHandler#handleConfigurationUpdate(java.util.Map)
+     */
+    @Override
+    public void handleConfigurationUpdate(Map<String, Object> configurationParameters) {
+        setupListener();
+        super.handleConfigurationUpdate(configurationParameters);
+    }
+
+    private void setupListener() {
+        String ip = (String) getConfig().get(IP_ADDRESS);
+        if (listener == null) {
+            listener = new HeosListener(ip, this);
+            listener.start();
+        } else {
+            logger.debug("New IP {} old IP {}", ip, listener.getIpAddrs());
+            if (!(listener.getIpAddrs().contains(ip))) {
+                listener.addIpAddr(ip);
+            }
+        }
+    }
+
+    /*
+     * (non-Javadoc)
+     *
+     * @see org.eclipse.smarthome.core.thing.binding.BaseThingHandler#dispose()
+     */
+    @Override
+    public void dispose() {
+        super.dispose();
+    }
+
+    /*
+     * (non-Javadoc)
+     *
+     * @see
+     * org.eclipse.smarthome.core.thing.binding.BaseThingHandler#updateConfiguration(org.eclipse.smarthome.config.core.
+     * Configuration)
+     */
+    @Override
+    protected void updateConfiguration(Configuration configuration) {
+        // TODO Auto-generated method stub
+        super.updateConfiguration(configuration);
     }
 
 }

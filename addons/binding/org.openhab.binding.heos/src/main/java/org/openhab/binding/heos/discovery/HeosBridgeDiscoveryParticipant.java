@@ -46,37 +46,41 @@ public class HeosBridgeDiscoveryParticipant implements UpnpDiscoveryParticipant 
     @Override
     public DiscoveryResult createResult(RemoteDevice device) {
         ThingUID uid = getThingUID(device);
+        DiscoveryResult result = null;
         synchronized (foundBridge) {
-            if (uid != null && !foundBridge) {
+            if (uid != null) {
                 Map<String, Object> properties = new HashMap<>(3);
-                String label = "Heos device";
-                try {
-                    label = device.getDetails().getModelDetails().getModelName();
-                } catch (Exception e) {
-                    // ignore and use default label
-                }
+                String label = "Heos Bridge";
                 String ip = device.getIdentity().getDescriptorURL().getHost();
-                TelnetClient tc = new TelnetClient();
-                try {
-                    tc.connect(ip, HeosListener.HEOS_PORT);
-                    tc.disconnect();
-                } catch (Exception e) {
-                    logger.error("Failed to connect {} on port {}", ip, HeosListener.HEOS_PORT);
-                    return null;
-                }
-                properties.put(UDN, device.getIdentity().getUdn().getIdentifierString());
-                properties.put(IP_ADDRESS, ip);
+                if (testIP(ip)) {
+                    properties.put(UDN, device.getIdentity().getUdn().getIdentifierString());
+                    properties.put(IP_ADDRESS, ip);
 
-                DiscoveryResult result = DiscoveryResultBuilder.create(uid).withProperties(properties).withLabel(label)
-                        .build();
-                foundBridge = true;
-                logger.debug("Created a DiscoveryResult for device '{}' with {} and UDN '{}'",
-                        device.getDetails().getFriendlyName(), ip, device.getIdentity().getUdn().getIdentifierString());
-                return result;
-            } else {
-                return null;
+                    result = DiscoveryResultBuilder.create(uid).withProperties(properties).withLabel(label).build();
+                    foundBridge = true;
+                    logger.debug("Created a DiscoveryResult for device '{}' with {} and UDN '{}'",
+                            device.getDetails().getFriendlyName(), ip,
+                            device.getIdentity().getUdn().getIdentifierString());
+                }
+            } else if (uid != null) {
+                String ip = device.getIdentity().getDescriptorURL().getHost();
+
             }
+            return result;
         }
+    }
+
+    private boolean testIP(String ip) {
+        TelnetClient tc = new TelnetClient();
+        boolean result = false;
+        try {
+            tc.connect(ip, HeosListener.HEOS_PORT);
+            tc.disconnect();
+            result = true;
+        } catch (Exception e) {
+            logger.error("Failed to connect {} on port {}", ip, HeosListener.HEOS_PORT);
+        }
+        return result;
     }
 
     @Override
