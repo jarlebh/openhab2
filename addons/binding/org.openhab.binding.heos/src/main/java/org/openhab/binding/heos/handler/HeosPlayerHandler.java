@@ -469,40 +469,19 @@ public class HeosPlayerHandler extends BaseThingHandler implements DiscoveryList
             // stop whatever is currently playing
             coordinator.stop();
 
-            // clear any tracks which are pending in the queue
-            coordinator.removeAllTracksFromQueue();
-
-            // add the new track we want to play to the queue
-            // The url will be prefixed with x-file-cifs if it is NOT a http URL
-            if (!url.startsWith("x-") && (!url.startsWith("http"))) {
-                // default to file based url
-                url = "x-file-cifs:" + url;
-            }
-            coordinator.addURIToQueue(url, "", 0, true);
-
-            // set the current playlist to our new queue
-            coordinator.setCurrentURI("x-rincon-queue:" + pid + "#0", "");
-
-            // take the system off mute
-            coordinator.setMute(OnOffType.OFF);
-
-            // start jammin'
-            coordinator.play();
+            coordinator.playURL(url);
         }
 
+    }
+
+    private void playURL(String url) {
+        // TODO Auto-generated method stub
+        sendCommand(BROWSE_PLAY_STREAM, "url=" + url);
     }
 
     public void playQueue(Command command) {
         HeosPlayerHandler coordinator = getHandlerByName(getCoordinator());
 
-        // set the current playlist to our new queue
-        coordinator.setCurrentURI("x-rincon-queue:" + pid + "#0", "");
-
-        // take the system off mute
-        coordinator.setMute(OnOffType.OFF);
-
-        // start jammin'
-        coordinator.play();
     }
 
     public void setLed(Command command) {
@@ -528,10 +507,6 @@ public class HeosPlayerHandler extends BaseThingHandler implements DiscoveryList
         if (command != null && command instanceof StringType) {
             HeosPlayerHandler oldmemberHandler = getHandlerByName(command.toString());
 
-            oldmemberHandler.becomeStandAlonePlayer();
-            HeosPlayer entry = new HeosPlayer("", "", "", "", "", "", "",
-                    "x-rincon-queue:" + oldmemberHandler.pid + "#0");
-            oldmemberHandler.setCurrentURI(entry);
         }
     }
 
@@ -683,6 +658,7 @@ public class HeosPlayerHandler extends BaseThingHandler implements DiscoveryList
                     case EVENT_PLAYER_VOLUME_CHANGED:
                     case EVENT_REPEAT_MODE_CHANGED:
                     case EVENT_SHUFFLE_MODE_CHANGE:
+                    case EVENT_PLAYBACK_ERROR:
                         handleEvent(message);
                         break;
                     default:
@@ -738,6 +714,9 @@ public class HeosPlayerHandler extends BaseThingHandler implements DiscoveryList
         if (params.containsKey("level")) {
             updateVolume((params.get("level")));
         }
+        if (params.containsKey("error")) {
+            updateState(CURRENTTITLE, createStringType(params.get("error")));
+        }
         stateMap.putAll(params);
     }
 
@@ -780,5 +759,9 @@ public class HeosPlayerHandler extends BaseThingHandler implements DiscoveryList
 
     private StringType createStringType(String valueAsString) {
         return new StringType(valueAsString != null ? valueAsString : "");
+    }
+
+    public void playNotificationSoundURI(StringType stringType) {
+        playURI(stringType);
     }
 }

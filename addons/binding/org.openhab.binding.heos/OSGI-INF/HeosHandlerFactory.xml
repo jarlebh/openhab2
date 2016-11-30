@@ -12,8 +12,11 @@
 
    <implementation class="org.openhab.binding.heos.internal.HeosHandlerFactory"/>
   
+   <reference bind="setUpnpIOService" cardinality="1..1" interface="org.eclipse.smarthome.io.transport.upnp.UpnpIOService" name="UpnpIOService" policy="static" unbind="unsetUpnpIOService"/>
+   <reference bind="setDiscoveryServiceRegistry" cardinality="1..1" interface="org.eclipse.smarthome.config.discovery.DiscoveryServiceRegistry" name="DiscoveryServiceRegistry" policy="static" unbind="unsetDiscoveryServiceRegistry"/>
+   
    <service>
       <provide interface="org.eclipse.smarthome.core.thing.binding.ThingHandlerFactory"/>
    </service>
-
+   <reference bind="setAudioHTTPServer" cardinality="1..1" interface="org.eclipse.smarthome.core.audio.AudioHTTPServer" name="AudioHTTPServer" policy="static" unbind="unsetAudioHTTPServer"/>
 </scr:component>

@@ -39,6 +39,8 @@ public enum HeosCommand {
     SYSTEM_SIGNIN("system", "sign_in"),
     @SerializedName("event/player_state_changed")
     EVENT_STATECHANGE("event", "player_state_changed"),
+    @SerializedName("event/player_playback_error")
+    EVENT_PLAYBACK_ERROR("event", "player_playback_error"),
     @SerializedName("event/shuffle_mode_changed")
     EVENT_SHUFFLE_MODE_CHANGE("event", "shuffle_mode_changed"),
     @SerializedName("event/player_now_playing_changed")

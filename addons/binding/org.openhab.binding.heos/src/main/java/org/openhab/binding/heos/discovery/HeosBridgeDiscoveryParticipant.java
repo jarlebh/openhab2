@@ -9,7 +9,7 @@
 package org.openhab.binding.heos.discovery;
 
 import static org.openhab.binding.heos.HeosBindingConstants.HEOSBRIDGE_THING_TYPE_UID;
-import static org.openhab.binding.heos.config.ZonePlayerConfiguration.*;
+import static org.openhab.binding.heos.config.HeosPlayerConfiguration.*;
 
 import java.util.Collections;
 import java.util.HashMap;
