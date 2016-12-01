@@ -372,6 +372,7 @@ public class HeosBridgeHandler extends BaseBridgeHandler implements DeviceStatus
     protected void updateConfiguration(Configuration configuration) {
         // TODO Auto-generated method stub
         super.updateConfiguration(configuration);
+        rescanHeosPlayers();
     }
 
 }
