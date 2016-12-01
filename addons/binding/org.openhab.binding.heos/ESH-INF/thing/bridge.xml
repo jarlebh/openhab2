@@ -11,15 +11,25 @@
         </description>
 
         <config-description>
-            <parameter name="udn" type="text" required="true">
-                <context>id</context>
+            <parameter name="udn" type="text" required="true" readOnly="true">
+                <context>thing</context>
                 <label>PlayerUDN</label>
                 <description>UDN of Player used as Bridge</description>
             </parameter>
             <parameter name="ipAddress" type="text" required="true">
-                <context>id</context>
+                <context>network-address</context>
                 <label>BridgeIP</label>
                 <description>IP of player used as bridge</description>
+            </parameter>
+            <parameter name="username" type="text" required="false">
+                <context>email</context>
+                <label>Heos Username</label>
+                <description>Username for Heos Account</description>
+            </parameter>
+            <parameter name="password" type="text" required="false">
+                <context>password</context>
+                <label>Heos Password</label>
+                <description>Password for Heos Account</description>
             </parameter>
         </config-description>
 

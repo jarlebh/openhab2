@@ -13,6 +13,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.ConnectException;
+import java.net.NoRouteToHostException;
 import java.net.SocketTimeoutException;
 import java.util.ArrayList;
 import java.util.LinkedList;
@@ -32,7 +33,7 @@ import com.google.gson.Gson;
  * @author Jeroen Idserda
  * @since 1.7.0
  */
-public class HeosListener extends Thread {
+public class HeosListener implements Runnable, checkSquence {
 
     public static final int HEOS_PORT = 1255;
 
@@ -48,15 +49,21 @@ public class HeosListener extends Thread {
 
     private TelnetClient tc;
 
-    private boolean running = true;
-
     private boolean connected = false;
 
     private Gson gson = new Gson();
 
     private LinkedList<String> commands = null;
 
-    private Thread sender = null;
+    public HeosCommandSender sender = null;
+
+    private long currSeq = 0;
+
+    private boolean isSending;
+
+    BufferedReader buffReader = null;
+
+    PrintWriter out = null;
 
     public HeosListener(String addr, HeosUpdateReceivedCallback callback) {
         logger.debug("HeosListener created {}", addr);
@@ -65,61 +72,61 @@ public class HeosListener extends Thread {
         this.callback = callback;
         this.commands = new LinkedList<String>();
         this.tc = createTelnetClient();
+        this.sender = new HeosCommandSender();
     }
 
     @Override
     public void run() {
-        while (running) {
+        try {
             if (!connected) {
                 connectTelnetClient();
             }
-
-            BufferedReader buffReader = new BufferedReader(new InputStreamReader(tc.getInputStream()));
-            PrintWriter out = new PrintWriter(tc.getOutputStream(), true);
-
-            do {
-                try {
-                    String line = buffReader.readLine();
-                    if (!StringUtils.isBlank(line)) {
-                        logger.trace("Received from {}: {}", tc.getRemoteAddress(), line);
-                        HeosMessage fromJson = gson.fromJson(line, HeosMessage.class);
-                        if (fromJson.getHeos().getCommand() == null) {
-                            logger.warn("Uknown command in:" + line);
-                        }
-                        callback.updateReceived(fromJson);
-                    }
-                    Thread.sleep(100);
-                } catch (SocketTimeoutException e) {
-                    logger.trace("Socket timeout");
-                    // Disconnects are not always detected unless you write to the socket.
-                    sendHeartBeat(out);
-                } catch (IOException e) {
-                    callback.listenerDisconnected();
-                    logger.error("Error in telnet connection", e);
-                    connected = false;
-                } catch (InterruptedException e) {
-                    logger.trace("InterruptedException");
-                    // Disconnects are not always detected unless you write to the socket.
-                    disconnect(true);
-                } catch (Exception e) {
-                    logger.error("Unknown Failure", e);
-                    // Disconnects are not always detected unless you write to the socket.
-                    sendHeartBeat(out);
+            String line = buffReader.readLine();
+            if (!StringUtils.isBlank(line)) {
+                logger.debug("Received from {}: {}", tc.getRemoteAddress(), line);
+                HeosMessage fromJson = gson.fromJson(line, HeosMessage.class);
+                if (fromJson.getHeos().getCommand() == null) {
+                    logger.warn("Uknown command in:" + line);
                 }
-            } while (running && connected);
+                checkSequence(fromJson);
+                if (fromJson.getHeos().getMessage() != null
+                        && fromJson.getHeos().getMessage().contains("command under process")) {
+                    // Ignore these, wait for the full update
+                    logger.debug("Ignore the command under process");
+                } else {
+                    this.isSending = false;
+                    callback.updateReceived(fromJson);
+                }
+            }
+        } catch (SocketTimeoutException e) {
+            logger.trace("Socket timeout");
+            // Disconnects are not always detected unless you write to the socket.
+            sendHeartBeat();
+        } catch (IOException e) {
+            callback.listenerDisconnected();
+            logger.error("Error in telnet connection", e);
+            connected = false;
+        } catch (Exception e) {
+            logger.error("Unknown Failure", e);
+            // Disconnects are not always detected unless you write to the socket.
+            sendHeartBeat();
         }
         logger.warn("HeosListener Finished {}", this);
     }
 
-    private void sendHeartBeat(PrintWriter out) {
-        if (out != null) {
-            out.println("heos://system/heart_beat");
-            out.flush();
+    private void checkSequence(HeosMessage fromJson) {
+        if (fromJson.getHeos().getMessage() != null && fromJson.getHeos().getMessage().contains("SEQUENCE")) {
+            String msg = fromJson.getHeos().getMessage();
+            int index = msg.indexOf("SEQUENCE");
+            logger.debug("SEQ {}", msg.substring(index));
         }
     }
 
+    private void sendHeartBeat() {
+        commands.add("heos://system/heart_beat");
+    }
+
     public void shutdown() {
-        this.running = false;
         disconnect(true);
     }
 
@@ -129,46 +136,57 @@ public class HeosListener extends Thread {
 
         while (!tc.isConnected()) {
             try {
-                for (String ipAddr : ipAddrs) {
-                    Thread.sleep(delay);
+                Thread.sleep(delay);
+                for (String ipAddr : ipAddrs.toArray(new String[0])) {
                     logger.debug("Connecting to {}", ipAddr);
-                    tc.connect(ipAddr, HeosListener.HEOS_PORT);
-                    commands.add("heos://system/register_for_change_events?enable=on\r\n");
-                    connected = true;
-                    callback.listenerConnected();
-                    sender = new Thread() {
-                        @Override
-                        public void run() {
-                            PrintWriter out = new PrintWriter(tc.getOutputStream(), true);
-                            while (running && connected) {
-                                if (!commands.isEmpty() && connected) {
-                                    out.println(commands.removeFirst());
-                                    out.flush();
-                                }
-                                try {
-                                    Thread.sleep(100);
-                                } catch (InterruptedException e) {
-                                    logger.error("Failed to wait", e);
-                                }
-                            }
-                        }
-                    };
-                    sender.start();
-                    break;
+                    try {
+                        tc.connect(ipAddr, HeosListener.HEOS_PORT);
+                        buffReader = new BufferedReader(new InputStreamReader(tc.getInputStream()));
+                        out = new PrintWriter(tc.getOutputStream(), true);
+                        commands.add("heos://system/register_for_change_events?enable=off");
+                        commands.add("heos://system/prettify_json_response?enable=off");
+                        connected = true;
+                        callback.listenerConnected();
+
+                        break;
+
+                    } catch (NoRouteToHostException e) {
+                        logger.error("Cannot connect to {}, removing IP", ipAddrs, e);
+                        disconnect(true);
+                        this.ipAddrs.remove(ipAddr);
+                    } catch (ConnectException e) {
+                        logger.error("Cannot connect to {}", ipAddrs, e);
+                        disconnect(true);
+                    } catch (IOException e) {
+                        logger.error("Cannot connect to {}", ipAddrs, e);
+                        disconnect(true);
+                    }
                 }
-            } catch (ConnectException e) {
-                logger.error("Cannot connect to {}", ipAddrs, e);
-                disconnect(true);
-            } catch (IOException e) {
-                logger.error("Cannot connect to {}", ipAddrs, e);
-                disconnect(true);
             } catch (InterruptedException e) {
                 logger.error("Interrupted while connecting to {}", ipAddrs, e);
             }
+
             delay = RECONNECT_DELAY;
         }
 
         logger.debug("Heos telnet client connected to {}", tc.getRemoteAddress());
+    }
+
+    class HeosCommandSender implements Runnable {
+
+        @Override
+        public void run() {
+            if (!commands.isEmpty() && connected && !isSending) {
+                String cmd = commands.removeFirst();
+                if (cmd.contains("browse")) {
+                    cmd = cmd + "&SEQUENCE=" + currSeq++;
+                }
+                logger.debug("Sending command: {}", cmd);
+                out.println(cmd);
+                isSending = true;
+
+            }
+        }
     }
 
     private void disconnect(boolean updateListeners) {
@@ -179,7 +197,6 @@ public class HeosListener extends Thread {
         if (tc != null && tc.isConnected()) {
             try {
                 this.tc.disconnect();
-                this.sender.interrupt();
             } catch (IOException e) {
                 logger.debug("Error while disconnecting telnet client", e);
             }
@@ -197,7 +214,7 @@ public class HeosListener extends Thread {
         if (param != null) {
             cmd = cmd + "?" + param;
         }
-        logger.debug("Heos sendCommand {}", cmd);
+        logger.debug("Heos add sendCommand {}", cmd);
         commands.add(cmd);
     }
 
