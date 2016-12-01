@@ -111,7 +111,7 @@ public class HeosListener implements Runnable, checkSquence {
             // Disconnects are not always detected unless you write to the socket.
             sendHeartBeat();
         }
-        logger.warn("HeosListener Finished {}", this);
+        logger.trace("HeosListener Finished {}", this);
     }
 
     private void checkSequence(HeosMessage fromJson) {
