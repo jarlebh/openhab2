@@ -25,7 +25,6 @@ Import-Package:
  org.eclipse.smarthome.core.thing.type,
  org.eclipse.smarthome.core.types,
  org.eclipse.smarthome.io.net.http,
- org.eclipse.smarthome.io.transport.upnp,
  org.jupnp,
  org.jupnp.model,
  org.jupnp.model.meta,

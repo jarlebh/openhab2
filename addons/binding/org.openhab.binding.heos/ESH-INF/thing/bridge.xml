@@ -12,7 +12,7 @@
 
         <config-description>
             <parameter name="udn" type="text" required="true" readOnly="true">
-                <context>thing</context>
+                <context>id</context>
                 <label>PlayerUDN</label>
                 <description>UDN of Player used as Bridge</description>
             </parameter>

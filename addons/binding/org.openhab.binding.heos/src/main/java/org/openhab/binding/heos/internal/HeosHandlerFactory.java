@@ -29,7 +29,6 @@ import org.eclipse.smarthome.core.thing.ThingTypeUID;
 import org.eclipse.smarthome.core.thing.ThingUID;
 import org.eclipse.smarthome.core.thing.binding.BaseThingHandlerFactory;
 import org.eclipse.smarthome.core.thing.binding.ThingHandler;
-import org.eclipse.smarthome.io.transport.upnp.UpnpIOService;
 import org.openhab.binding.heos.discovery.HeosDiscoveryService;
 import org.openhab.binding.heos.handler.HeosBridgeHandler;
 import org.openhab.binding.heos.handler.HeosPlayerHandler;
@@ -54,7 +53,6 @@ public class HeosHandlerFactory extends BaseThingHandlerFactory {
     private HeosDiscoveryService heosDiscoveryService;
     // optional OPML URL that can be configured through configuration admin
     private String opmlUrl = null;
-    private UpnpIOService upnpIOService;
     private AudioHTTPServer audioHTTPServer;
 
     // url (scheme+server+port) to use for playing notification sounds
@@ -170,14 +168,6 @@ public class HeosHandlerFactory extends BaseThingHandlerFactory {
 
             return "http://" + ipAddress + ":" + port;
         }
-    }
-
-    protected void setUpnpIOService(UpnpIOService upnpIOService) {
-        this.upnpIOService = upnpIOService;
-    }
-
-    protected void unsetUpnpIOService(UpnpIOService upnpIOService) {
-        this.upnpIOService = null;
     }
 
     protected void setAudioHTTPServer(AudioHTTPServer audioHTTPServer) {
