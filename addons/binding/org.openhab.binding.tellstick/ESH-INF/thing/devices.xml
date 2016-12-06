@@ -1,8 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<thing:thing-descriptions bindingId="tellstick"
-       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-    xmlns:thing="http://eclipse.org/smarthome/schemas/thing-description/v1.0.0"
-    xsi:schemaLocation="http://eclipse.org/smarthome/schemas/thing-description/v1.0.0 http://eclipse.org/smarthome/schemas/thing-description-1.0.0.xsd">
+<thing:thing-descriptions bindingId="tellstick" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:thing="http://eclipse.org/smarthome/schemas/thing-description/v1.0.0"
+	xsi:schemaLocation="http://eclipse.org/smarthome/schemas/thing-description/v1.0.0 http://eclipse.org/smarthome/schemas/thing-description-1.0.0.xsd">
 
 	<!-- Tellstick Dimmer -->
 	<thing-type id="dimmer">
@@ -12,16 +11,16 @@
 		</supported-bridge-type-refs>
 
 		<label>Dimmable Device</label>
-		<description>This Thing defines a Dimmable Device</description>
+		<description>This is a Dimmable device</description>
 
 		<channels>
 			<channel id="dimmer" typeId="dimmer" />
 			<channel id="state" typeId="state" />
-			<channel id="timestamp" typeId="timestamp"/>
+			<channel id="timestamp" typeId="timestamp" />
 		</channels>
 
 		<config-description>
-			<parameter name="protocol" type="text"  required="false">
+			<parameter name="protocol" type="text" required="false">
 				<label>Protocol</label>
 				<description>The protocol used by a specific device.</description>
 				<required>false</required>
@@ -33,20 +32,20 @@
 			</parameter>
 			<parameter name="deviceId" type="integer">
 				<label>DeviceID</label>
-				<description>This function returns the unique id of a device with a specific index.</description>
+				<description>This is the unique id of a device.</description>
 				<required>true</required>
 			</parameter>
 			<parameter name="model" type="text">
-                <label>Model</label>
-                <description>The model used by a specific device.</description>
-                <required>false</required>
-            </parameter>
-            <parameter name="repeat" type="integer">
-                <label>Repeat</label>
-                <description>The number of times to resend.</description>
-                <required>false</required>
-                <default>2</default>
-            </parameter>
+				<label>Model</label>
+				<description>The model used by a specific device.</description>
+				<required>false</required>
+			</parameter>
+			<parameter name="repeat" type="integer">
+				<label>Repeat</label>
+				<description>The number of times to resend.</description>
+				<required>false</required>
+				<default>2</default>
+			</parameter>
 		</config-description>
 	</thing-type>
 	<thing-type id="switch">
@@ -59,7 +58,7 @@
 
 		<channels>
 			<channel id="state" typeId="state" />
-			<channel id="timestamp" typeId="timestamp"/>
+			<channel id="timestamp" typeId="timestamp" />
 		</channels>
 
 		<config-description>
@@ -75,23 +74,22 @@
 			</parameter>
 			<parameter name="deviceId" type="integer">
 				<label>DeviceID</label>
-				<description>This function returns the unique id of a device with a specific index.</description>
+				<description>This is the unique id of a device.</description>
 				<required>true</required>
-				
 			</parameter>
-			
-            <parameter name="resend" type="integer">
-                <label>Resend</label>
-                <description>The number of times to resend.</description>
-                <required>false</required>
-                <default>2</default>
-            </parameter>
-            <parameter name="dimmer" type="boolean">
-                <label>Dimmer</label>
-                <description>Is this a dimmer without absolute setting (e.g. you pres on to start dim and then on again to stop it).</description>
-                <required>false</required>
-                <default>false</default>
-            </parameter>
+
+			<parameter name="resend" type="integer">
+				<label>Resend</label>
+				<description>The number of times to resend.</description>
+				<required>false</required>
+				<default>2</default>
+			</parameter>
+			<parameter name="dimmer" type="boolean">
+				<label>Dimmer</label>
+				<description>Is this a dimmer without absolute setting (e.g. you press on to start dim and then on again to stop it).</description>
+				<required>false</required>
+				<default>false</default>
+			</parameter>
 		</config-description>
 	</thing-type>
 	<channel-type id="dimmer">
@@ -99,17 +97,17 @@
 		<label>Dimmer Value</label>
 		<description>The channel to control the dimmer</description>
 	</channel-type>
-	
-	 <channel-type id="state">
-        <item-type>Switch</item-type>
-        <label>Switch</label>
-        <description>Turns the power on or off</description>
-        <category>Switch</category>
-    </channel-type>
-    
-    <channel-type id="timestamp">
-        <item-type>DateTime</item-type>
-        <label>Last device update</label>
-        <description>Last device update</description>
-    </channel-type>
+
+	<channel-type id="state">
+		<item-type>Switch</item-type>
+		<label>Switch</label>
+		<description>Turns the power on or off</description>
+		<category>Switch</category>
+	</channel-type>
+
+	<channel-type id="timestamp">
+		<item-type>DateTime</item-type>
+		<label>Last device update</label>
+		<description>Last device update</description>
+	</channel-type>
 </thing:thing-descriptions>

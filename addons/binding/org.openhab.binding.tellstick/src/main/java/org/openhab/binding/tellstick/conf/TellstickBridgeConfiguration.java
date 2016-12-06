@@ -10,14 +10,11 @@ package org.openhab.binding.tellstick.conf;
 
 /**
  * Configuration class for {@link TellstickBridge} bridge used to connect to the
- * maxCube device.
+ * Telldus Core service on the local machine.
  *
  * @author Jarle Hjortland - Initial contribution
  */
-
 public class TellstickBridgeConfiguration {
-
     public int resendInterval;
-
     public String libraryPath;
 }

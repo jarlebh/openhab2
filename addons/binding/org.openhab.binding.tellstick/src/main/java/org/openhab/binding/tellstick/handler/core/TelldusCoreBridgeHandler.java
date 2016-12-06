@@ -159,12 +159,12 @@ public class TelldusCoreBridgeHandler extends BaseBridgeHandler
     }
 
     public void onConnectionLost() {
-        logger.info("Bridge connection lost. Updating thing status to OFFLINE.");
+        logger.debug("Bridge connection lost. Updating thing status to OFFLINE.");
         updateStatus(ThingStatus.OFFLINE);
     }
 
     public void onConnection() {
-        logger.info("Bridge connected. Updating thing status to ONLINE.");
+        logger.debug("Bridge connected. Updating thing status to ONLINE.");
         updateStatus(ThingStatus.ONLINE);
     }
 
@@ -178,7 +178,7 @@ public class TelldusCoreBridgeHandler extends BaseBridgeHandler
     @Override
     public boolean registerDeviceStatusListener(DeviceStatusListener deviceStatusListener) {
         if (deviceStatusListener == null) {
-            throw new NullPointerException("It's not allowed to pass a null deviceStatusListener.");
+            throw new IllegalArgumentException("It's not allowed to pass a null deviceStatusListener.");
         }
         boolean result = deviceStatusListeners.add(deviceStatusListener);
         if (result) {
@@ -214,12 +214,6 @@ public class TelldusCoreBridgeHandler extends BaseBridgeHandler
         }
         return null;
     }
-
-    /*
-     * (non-Javadoc)
-     *
-     * @see org.openhab.binding.tellstick.handler.TelldusBridgeHandlerIntf#getDevice(java.lang.String)
-     */
 
     @Override
     public Device getDevice(String serialNumber) {
@@ -275,11 +269,6 @@ public class TelldusCoreBridgeHandler extends BaseBridgeHandler
         }
     }
 
-    /*
-     * (non-Javadoc)
-     *
-     * @see org.openhab.binding.tellstick.handler.TelldusBridgeHandlerIntf#getSensor(java.lang.String)
-     */
     @Override
     public Device getSensor(String deviceUUId) {
         for (Device device : sensorList) {

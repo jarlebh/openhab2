@@ -76,7 +76,6 @@ public class TelldusLiveBridgeHandler extends BaseBridgeHandler implements Telld
 
     @Override
     public void initialize() {
-        // super.initialize();
         logger.debug("Initializing TelldusLive bridge handler.");
         TelldusLiveConfiguration configuration = getConfigAs(TelldusLiveConfiguration.class);
         // workaround for issue #92: getHandler() returns NULL after
@@ -85,7 +84,6 @@ public class TelldusLiveBridgeHandler extends BaseBridgeHandler implements Telld
         this.controller = new TelldusLiveDeviceController();
         this.controller.connectHttpClient(configuration.publicKey, configuration.privateKey, configuration.token,
                 configuration.tokenSecret);
-        // refreshDeviceList();
         startAutomaticRefresh(configuration.refreshInterval);
         updateStatus(ThingStatus.ONLINE);
     }
@@ -101,13 +99,13 @@ public class TelldusLiveBridgeHandler extends BaseBridgeHandler implements Telld
 
         updateSensors(sensorList);
 
-        logger.info("Found senors list " + sensorList.getSensors());
+        logger.debug("Found senors list {}", sensorList.getSensors());
     }
 
     private synchronized void updateDevices(TellstickNetDevices previouslist) {
         TellstickNetDevices newList = controller.callRestMethod(TelldusLiveDeviceController.HTTP_TELLDUS_DEVICES,
                 TellstickNetDevices.class);
-        logger.debug("Device list " + newList.getDevices());
+        logger.debug("Device list {}", newList.getDevices());
         if (previouslist == null) {
             logger.debug("updateDevices, Creating devices.");
             for (TellstickNetDevice device : newList.getDevices()) {
@@ -130,7 +128,7 @@ public class TelldusLiveBridgeHandler extends BaseBridgeHandler implements Telld
                         orgDevice.setUpdated(true);
                     }
                 } else {
-                    logger.debug("New Device - Adding:" + device);
+                    logger.debug("New Device - Adding:{}", device);
                     previouslist.getDevices().add(device);
                     device.setUpdated(true);
                     for (DeviceStatusListener listener : deviceStatusListeners) {
@@ -142,7 +140,7 @@ public class TelldusLiveBridgeHandler extends BaseBridgeHandler implements Telld
 
         for (TellstickNetDevice device : deviceList.getDevices()) {
             if (device.isUpdated()) {
-                logger.debug("Updated device:" + device);
+                logger.debug("Updated device:{}", device);
                 for (DeviceStatusListener listener : deviceStatusListeners) {
                     listener.onDeviceStateChanged(getThing(), device,
                             new TellstickDeviceEvent(device, null, null, null, System.currentTimeMillis()));
@@ -205,8 +203,7 @@ public class TelldusLiveBridgeHandler extends BaseBridgeHandler implements Telld
 
     @Override
     public void handleCommand(ChannelUID channelUID, Command command) {
-        // TODO Auto-generated method stub
-
+        // Need to stay for compile reasons
     }
 
     @Override
@@ -227,7 +224,7 @@ public class TelldusLiveBridgeHandler extends BaseBridgeHandler implements Telld
     @Override
     public boolean registerDeviceStatusListener(DeviceStatusListener deviceStatusListener) {
         if (deviceStatusListener == null) {
-            throw new NullPointerException("It's not allowed to pass a null deviceStatusListener.");
+            throw new IllegalArgumentException("It's not allowed to pass a null deviceStatusListener.");
         }
         boolean result = deviceStatusListeners.add(deviceStatusListener);
         if (result) {
@@ -262,11 +259,6 @@ public class TelldusLiveBridgeHandler extends BaseBridgeHandler implements Telld
         }
         return null;
     }
-    /*
-     * (non-Javadoc)
-     *
-     * @see org.openhab.binding.tellstick.handler.TelldusBridgeHandlerIntf#getDevice(java.lang.String)
-     */
 
     @Override
     public Device getDevice(String serialNumber) {

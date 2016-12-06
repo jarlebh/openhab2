@@ -47,8 +47,7 @@ import org.tellstick.enums.DeviceType;
  * @author Jarle Hjortland
  *
  */
-public class TelldusDevicesHandler extends BaseThingHandler
-        implements org.openhab.binding.tellstick.handler.DeviceStatusListener {
+public class TelldusDevicesHandler extends BaseThingHandler implements DeviceStatusListener {
 
     private Logger logger = LoggerFactory.getLogger(TelldusDevicesHandler.class);
     private String deviceId;
@@ -96,9 +95,11 @@ public class TelldusDevicesHandler extends BaseThingHandler
                     logger.warn("{} is not an updateable device. Read-only", dev);
                 }
             } catch (TellstickException e) {
-                logger.error("Failed to send command to tellstick", e);
+                logger.debug("Failed to send command to tellstick", e);
+                updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.COMMUNICATION_ERROR, e.getMessage());
             } catch (Exception e) {
                 logger.error("Failed to send command to tellstick", e);
+                updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.COMMUNICATION_ERROR, e.getMessage());
             }
         } else {
             logger.warn("Setting of channel {} not possible. Read-only", channelUID);
@@ -217,7 +218,7 @@ public class TelldusDevicesHandler extends BaseThingHandler
 
     @Override
     public void bridgeHandlerDisposed(ThingHandler thingHandler, Bridge bridge) {
-        logger.info("Bridge disposed for {}", getThing().getUID());
+        logger.debug("Bridge disposed for {}", getThing().getUID());
     }
 
     private synchronized TelldusBridgeHandler getTellstickBridgeHandler() {
@@ -300,8 +301,6 @@ public class TelldusDevicesHandler extends BaseThingHandler
 
     @Override
     public void onDeviceAdded(Bridge bridge, Device device) {
-        // TODO Auto-generated method stub
-
     }
 
 }

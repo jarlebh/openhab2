@@ -1,6 +1,6 @@
 #Tellstick Binding
 
-This is an OpenHAB binding for Tellstick devices produced by Telldus, a Swedish company based in Lund.
+This is an openHAB binding for Tellstick devices produced by Telldus, a Swedish company based in Lund.
 
 The original Tellstick focused on controlling 433 MHz devices like switches, dimmers and reading sensors from different brands. <br>
 Many of the supported devices are cheaper and "low-end" and support have been made by reverse engineer the transmission protocols. <br>
@@ -29,24 +29,58 @@ Depending on your Tellstick model different API methods is available:
 
 This binding supports the following thing types:
 
-TBD
+* Telldus Core Bridge
+* Telldus Live Bridge
+* Dimmable Device
+* Switchable Device
+* Sensors
 
 ## Binding Configuration
 
-No binding configuration required.
+---
+#####For Telldus Core only#####
+*First of all you need to make sure that your JVM is matching your installed Telldus Center. This normally means openHab must run on a 32bit JVM for windows and a 64bit JVM for linux. For windows the binding is hardcoded to look for Telldus Center in Programs Files ("C:/Program Files/Telldus/;C:/Program Files (x86)/Telldus/"). If you have trouble getting the telldus core library to work you can modify the library path using*
 
 ## Discovery
 
-TBD
+There is two levels of discovery. When you add this binding it will try to discover the Telldus Core Bridge (this only works if you have Telldus installed and right 32/64 bit version of java).
+If you want to use the Telldus Live bridge, then you manually need to add this thing.
+When you add either of those all devices and sensors will be discovered and reported in the inbox.
 
 ## Thing Configuration
 
-TBD
+#####Telldus Core Bridge#####
+- **libraryPath:** The path to tellduscore.dll/so, 
+- **resendInterval:** The interval between each transmission of command, default 100ms.
+
+#####Telldus Live Bridge#####
+To configure Telldus Live you have request OAuth tokens from Telldus. Goto this page
+http://api.telldus.com/keys/index and request your keys and update the config.
+- **privateKey:** Private key
+- **publicKey:** Public key
+- **token:** Token
+- **tokenSecret:** Token secret
+- **refreshInterval:** How often we should contact Telldus.Live to check for updates
+
+The devices and sensors should not be configured by hand, let the discovery/inbox configure these.
 
 ## Channels
 
-TBD
+Actuators (dimmer/switch) support the following channels:
+| Channel Type ID | Item Type    | Description  |
+|-----------------|--------------|----------------------------------------------- |
+| dimmer          | Number       | This channel indicates the current dim level |
+| state           | Switch       | This channel indicates whether a device is turned on or off. |
+| timestamp       | DateTime     | This channel reports the last time this device state changed. |
 
+Sensors support the following channels:
+| Channel Type ID | Item Type    | Description  |
+|-----------------|--------------|----------------------------------------------- |
+| humidity        | Number       | This channel reports the current humidity in percentage |
+| temperature      | Number       | This channel reports the current temperature in celsius |
+| timestamp       | DateTime     | This channel reports the last time this sensor was updates. |
 ## Full Example
-
-TBD
+```xtend
+Bridge tellstick:telldus-core:1 "Tellstick Duo" []
+Bridge tellstick:telldus-live:2 "Tellstick ZWave" [refresh="10000", publicKey="XXXXXXXX", privateKey="YYYYYY", token= "ZZZZZZZZ", tokenSecret="UUUUUUUUUU"]
+```

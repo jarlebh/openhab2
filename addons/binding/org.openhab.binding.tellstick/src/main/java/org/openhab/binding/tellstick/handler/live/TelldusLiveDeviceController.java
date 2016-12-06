@@ -93,10 +93,9 @@ public class TelldusLiveDeviceController implements DeviceChangeListener, Sensor
         try {
             this.client.setSignatureCalculator(calc);
             Response response = client.prepareGet(HTTP_TELLDUS_CLIENTS).execute().get();
-            logger.info("Response " + response.getResponseBody() + " tt " + response.getStatusText());
+            logger.debug("Response {} statusText {}", response.getResponseBody(), response.getStatusText());
 
         } catch (InterruptedException | ExecutionException e) {
-            // TODO Auto-generated catch block
             logger.error("Failed to connect", e);
         }
     }
@@ -104,7 +103,6 @@ public class TelldusLiveDeviceController implements DeviceChangeListener, Sensor
     private AsyncHttpClientConfig createAsyncHttpClientConfig() {
         Builder builder = new DefaultAsyncHttpClientConfig.Builder();
         builder.setConnectTimeout(REQUEST_TIMEOUT_MS);
-        // builder.setUseRawUrl(true);
         return builder.build();
     }
 
@@ -112,7 +110,7 @@ public class TelldusLiveDeviceController implements DeviceChangeListener, Sensor
     public void handleSendEvent(Device device, int resendCount, boolean isdimmer, Command command)
             throws TellstickException {
 
-        logger.info("Send " + command + " to " + device);
+        logger.debug("Send {} to {}", command, device);
         if (device instanceof TellstickNetDevice) {
             if (command == OnOffType.ON) {
                 turnOn(device);
@@ -126,7 +124,7 @@ public class TelldusLiveDeviceController implements DeviceChangeListener, Sensor
         } else if (device instanceof SwitchableDevice) {
             if (command == OnOffType.ON) {
                 if (isdimmer) {
-                    logger.info("Turn off first in case it is allready on");
+                    logger.debug("Turn off first in case it is allready on");
                     turnOff(device);
                 }
                 turnOn(device);
@@ -150,15 +148,7 @@ public class TelldusLiveDeviceController implements DeviceChangeListener, Sensor
             percent = Math.min(percent + 10, 100);
         } else if (IncreaseDecreaseType.DECREASE == increaseDecreaseType) {
             percent = Math.max(percent - 10, 0);
-        } /**
-           * Copyright (c)2016 openHAB UG (haftungsbeschraenkt) and others.
-           *
-           * All rights reserved. This program and the accompanying materials
-           * are made available under the terms of the Eclipse Public License v1.0
-           * which accompanies this distribution, and is available at
-           * http://www.eclipse.org/legal/epl-v10.html
-           */
-
+        }
         dim(dev, new PercentType(percent));
     }
 
@@ -177,14 +167,6 @@ public class TelldusLiveDeviceController implements DeviceChangeListener, Sensor
                     TelldusLiveResponse.class);
             handleResponse((TellstickNetDevice) dev, response);
         } else {
-            /**
-             * Copyright (c)2016 openHAB UG (haftungsbeschraenkt) and others.
-             *
-             * All rights reserved. This program and the accompanying materials
-             * are made available under the terms of the Eclipse Public License v1.0
-             * which accompanies this distribution, and is available at
-             * http://www.eclipse.org/legal/epl-v10.html
-             */
             throw new RuntimeException("Cannot send DIM to " + dev);
         }
     }
@@ -223,11 +205,6 @@ public class TelldusLiveDeviceController implements DeviceChangeListener, Sensor
         }
     }
 
-    /*
-     * (non-Javadoc)
-     *
-     * @see org.openhab.binding.tellstick.handler.TelldusDeviceController#calcState(org.tellstick.device.iface.Device)
-     */
     @Override
     public State calcState(Device dev) {
         TellstickNetDevice device = (TellstickNetDevice) dev;
@@ -257,12 +234,6 @@ public class TelldusLiveDeviceController implements DeviceChangeListener, Sensor
         return st;
     }
 
-    /*
-     * (non-Javadoc)
-     *
-     * @see
-     * org.openhab.binding.tellstick.handler.TelldusDeviceController#calcDimValue(org.tellstick.device.iface.Device)
-     */
     @Override
     public BigDecimal calcDimValue(Device device) {
         BigDecimal dimValue = new BigDecimal(0);
@@ -306,16 +277,14 @@ public class TelldusLiveDeviceController implements DeviceChangeListener, Sensor
         try {
             Future<Response> future = client.prepareGet(uri).execute();
             Response resp = future.get(REQUEST_TIMEOUT_MS, TimeUnit.MILLISECONDS);
-            // TelldusLiveHandler.logger.info("Devices" + resp.getResponseBody());
             JAXBContext jc = JAXBContext.newInstance(response);
             XMLInputFactory xif = XMLInputFactory.newInstance();
             XMLStreamReader xsr = xif.createXMLStreamReader(resp.getResponseBodyAsStream());
-            // xsr = new PropertyRenamerDelegate(xsr);
 
             @SuppressWarnings("unchecked")
             T obj = (T) jc.createUnmarshaller().unmarshal(xsr);
             if (logger.isTraceEnabled()) {
-                logger.trace("Request [" + uri + "] Response:" + resp.getResponseBody());
+                logger.trace("Request [{}] Response:{}", uri, resp.getResponseBody());
             }
             return obj;
         } catch (JAXBException e) {

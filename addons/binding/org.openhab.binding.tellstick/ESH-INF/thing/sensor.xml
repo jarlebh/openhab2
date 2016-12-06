@@ -4,7 +4,6 @@
         xmlns:thing="http://eclipse.org/smarthome/schemas/thing-description/v1.0.0"
         xsi:schemaLocation="http://eclipse.org/smarthome/schemas/thing-description/v1.0.0 http://eclipse.org/smarthome/schemas/thing-description-1.0.0.xsd">
 
-	<!-- KNX Group Address -->
 	<thing-type id="sensor">
 		<supported-bridge-type-refs>
 			<bridge-type-ref id="telldus-core" />
@@ -46,9 +45,6 @@
         <label>Actual Temperature</label>
         <description>Actual measured room temperature</description>
         <category>Temperature</category>
-        <tags>
-            <tag>heating</tag>
-        </tags>
         <state pattern="%f °C" readOnly="true">
         </state>
 
@@ -59,9 +55,6 @@
         <label>Actual Humidity</label>
         <description>Actual measured room Humidity</description>
         <category>Humidity</category>
-        <tags>
-            <tag>heating</tag>
-        </tags>
         <state pattern="%d %%" readOnly="true">
         </state>
     </channel-type>

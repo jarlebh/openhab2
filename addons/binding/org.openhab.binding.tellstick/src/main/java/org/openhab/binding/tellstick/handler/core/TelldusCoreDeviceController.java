@@ -148,7 +148,7 @@ public class TelldusCoreDeviceController implements DeviceChangeListener, Sensor
             throws TellstickException {
         for (int i = 0; i < resendCount; i++) {
             checkLastAndWait(resendInterval);
-            logger.info("Send " + command + " to " + device + " times=" + i);
+            logger.debug("Send {} to {} times={}", command, device, i);
             if (device instanceof DimmableDevice) {
                 if (command == OnOffType.ON) {
                     turnOn(device);
@@ -162,7 +162,7 @@ public class TelldusCoreDeviceController implements DeviceChangeListener, Sensor
             } else if (device instanceof SwitchableDevice) {
                 if (command == OnOffType.ON) {
                     if (isdimmer) {
-                        logger.info("Turn off first in case it is allready on");
+                        logger.debug("Turn off first in case it is allready on");
                         turnOff(device);
                         checkLastAndWait(resendInterval);
                     }
@@ -226,7 +226,7 @@ public class TelldusCoreDeviceController implements DeviceChangeListener, Sensor
 
     private void checkLastAndWait(long resendInterval) {
         while ((System.currentTimeMillis() - lastSend) < resendInterval) {
-            logger.info("Wait for " + resendInterval + " millisec");
+            logger.debug("Wait for {} millisec", resendInterval);
             try {
                 Thread.sleep(resendInterval);
             } catch (InterruptedException e) {
@@ -268,8 +268,7 @@ public class TelldusCoreDeviceController implements DeviceChangeListener, Sensor
                         sendEvent(sendEvent.getDevice(), sendEvent.getResendCount(), sendEvent.getDimmer(),
                                 sendEvent.getCommand());
                     } catch (TellstickException e) {
-                        logger.error("Failed to send msg:" + sendEvent.getCommand() + " to " + sendEvent.getDevice(),
-                                e);
+                        logger.error("Failed to send msg:{} to {}", sendEvent.getCommand(), sendEvent.getDevice(), e);
                     }
 
                 } catch (InterruptedException ie) {
