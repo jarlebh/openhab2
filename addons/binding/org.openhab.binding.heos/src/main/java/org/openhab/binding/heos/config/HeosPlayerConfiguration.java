@@ -8,7 +8,7 @@
  */
 package org.openhab.binding.heos.config;
 
-public class ZonePlayerConfiguration {
+public class HeosPlayerConfiguration {
 
     public static final String UDN = "udn";
     public static final String FRIENDLY_NAME = "friendlyName";

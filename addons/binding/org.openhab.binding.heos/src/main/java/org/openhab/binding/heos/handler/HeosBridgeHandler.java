@@ -6,7 +6,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 
+import org.eclipse.smarthome.config.core.Configuration;
 import org.eclipse.smarthome.core.thing.Bridge;
 import org.eclipse.smarthome.core.thing.ChannelUID;
 import org.eclipse.smarthome.core.thing.Thing;
@@ -15,6 +18,7 @@ import org.eclipse.smarthome.core.thing.ThingStatusDetail;
 import org.eclipse.smarthome.core.thing.binding.BaseBridgeHandler;
 import org.eclipse.smarthome.core.types.Command;
 import org.eclipse.smarthome.core.types.RefreshType;
+import org.openhab.binding.heos.HeosBindingConstants;
 import org.openhab.binding.heos.internal.HeosCommand;
 import org.openhab.binding.heos.internal.HeosListener;
 import org.openhab.binding.heos.internal.HeosUpdateReceivedCallback;
@@ -44,6 +48,8 @@ public class HeosBridgeHandler extends BaseBridgeHandler implements DeviceStatus
     private boolean loggedIn = false;
     private Long lastScan = 0L;
     private HeosPlayerGroup[] groups;
+    private ScheduledFuture<?> pollingJob;
+    private ScheduledFuture<?> sendJob;
 
     public HeosBridgeHandler(Bridge bridge) {
         super(bridge);
@@ -53,8 +59,7 @@ public class HeosBridgeHandler extends BaseBridgeHandler implements DeviceStatus
 
     @Override
     public void initialize() {
-        listener = new HeosListener((String) getConfig().get(IP_ADDRESS), this);
-        listener.start();
+        setupListener();
     }
 
     @Override
@@ -72,10 +77,13 @@ public class HeosBridgeHandler extends BaseBridgeHandler implements DeviceStatus
             if ((System.currentTimeMillis() - lastScan) > (10 * 1000)) {
                 lastScan = System.currentTimeMillis();
                 if (!loggedIn) {
-                    sendCommand(HeosCommand.SYSTEM_SIGNIN, "un=jarlebh@gmail.com&pw=Indgu966");
+                    String userName = (String) getConfig().get(HeosBindingConstants.USERNAME);
+                    String password = (String) getConfig().get(HeosBindingConstants.PASSWORD);
+                    if (userName != null && password != null) {
+                        sendCommand(HeosCommand.SYSTEM_SIGNIN, "un=" + userName + "&pw=" + password);
+                    }
                 }
                 sendCommand(HeosCommand.GETPLAYERS, null);
-                sendCommand(HeosCommand.BROWSE_MUSIC_SOURCES, null);
                 sendCommand(HeosCommand.PLAYER_GET_GROUPS, null);
             }
         } catch (Exception e) {
@@ -194,6 +202,7 @@ public class HeosBridgeHandler extends BaseBridgeHandler implements DeviceStatus
             logger.error("Failed to login {}:{}", result, message.getHeos().getMessage());
         } else {
             loggedIn = true;
+            sendCommand(HeosCommand.BROWSE_MUSIC_SOURCES, null);
         }
         logger.debug("Login {}:{}", result, message.getHeos().getMessage());
     }
@@ -285,6 +294,7 @@ public class HeosBridgeHandler extends BaseBridgeHandler implements DeviceStatus
                 }
 
             }
+            sendCommand(HeosCommand.SYSTEM_REGISTER_CHANGEEVENTS, "enable=on");
             updateStatus(ThingStatus.ONLINE);
         } else if (message.getHeos().getResult().contains("error")) {
             logger.error("Failed to get players", message);
@@ -296,16 +306,73 @@ public class HeosBridgeHandler extends BaseBridgeHandler implements DeviceStatus
     public void listenerConnected() {
         logger.debug("listenerConnected");
         rescanHeosPlayers();
-
     }
 
     @Override
     public void listenerDisconnected() {
         logger.debug("listenerDisconnected");
+        updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.BRIDGE_OFFLINE);
     }
 
     public void unregisterDeviceStatusListener(DeviceStatusListener heosDiscoveryService) {
         deviceStatusListeners.remove(heosDiscoveryService);
+    }
+
+    /*
+     * (non-Javadoc)
+     *
+     * @see org.eclipse.smarthome.core.thing.binding.BaseThingHandler#handleConfigurationUpdate(java.util.Map)
+     */
+    @Override
+    public void handleConfigurationUpdate(Map<String, Object> configurationParameters) {
+        setupListener();
+        super.handleConfigurationUpdate(configurationParameters);
+    }
+
+    private void setupListener() {
+        String ip = (String) getConfig().get(IP_ADDRESS);
+        if (listener == null) {
+            listener = new HeosListener(ip, this);
+        } else {
+            logger.debug("New IP {} old IP {}", ip, listener.getIpAddrs());
+            if (!(listener.getIpAddrs().contains(ip))) {
+                listener.addIpAddr(ip);
+            }
+        }
+        startAutomaticRefresh(100);
+    }
+
+    private synchronized void startAutomaticRefresh(long refreshInterval) {
+        if (pollingJob == null || pollingJob.isCancelled()) {
+            pollingJob = scheduler.scheduleAtFixedRate(listener, 0, refreshInterval, TimeUnit.MILLISECONDS);
+        }
+        if (sendJob == null || sendJob.isCancelled()) {
+            sendJob = scheduler.scheduleAtFixedRate(listener.sender, 0, refreshInterval + 1, TimeUnit.MILLISECONDS);
+        }
+    }
+
+    /*
+     * (non-Javadoc)
+     *
+     * @see org.eclipse.smarthome.core.thing.binding.BaseThingHandler#dispose()
+     */
+    @Override
+    public void dispose() {
+        super.dispose();
+    }
+
+    /*
+     * (non-Javadoc)
+     *
+     * @see
+     * org.eclipse.smarthome.core.thing.binding.BaseThingHandler#updateConfiguration(org.eclipse.smarthome.config.core.
+     * Configuration)
+     */
+    @Override
+    protected void updateConfiguration(Configuration configuration) {
+        // TODO Auto-generated method stub
+        super.updateConfiguration(configuration);
+        rescanHeosPlayers();
     }
 
 }

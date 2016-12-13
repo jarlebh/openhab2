@@ -64,4 +64,8 @@ public class HeosBindingConstants {
     public final static String PLAYER_MODEL = "model";
     public final static String PLAYER_VERSION = "version";
 
+    public static final String USERNAME = "username";
+
+    public static final String PASSWORD = "password";
+
 }

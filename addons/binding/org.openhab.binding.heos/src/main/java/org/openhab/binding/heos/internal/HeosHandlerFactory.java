@@ -13,10 +13,16 @@ import static org.openhab.binding.heos.HeosBindingConstants.*;
 import java.util.Collection;
 import java.util.Dictionary;
 import java.util.Hashtable;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.eclipse.smarthome.config.core.Configuration;
 import org.eclipse.smarthome.config.discovery.DiscoveryService;
 import org.eclipse.smarthome.config.discovery.DiscoveryServiceRegistry;
+import org.eclipse.smarthome.core.audio.AudioHTTPServer;
+import org.eclipse.smarthome.core.audio.AudioSink;
+import org.eclipse.smarthome.core.net.HttpServiceUtil;
+import org.eclipse.smarthome.core.net.NetUtil;
 import org.eclipse.smarthome.core.thing.Bridge;
 import org.eclipse.smarthome.core.thing.Thing;
 import org.eclipse.smarthome.core.thing.ThingTypeUID;
@@ -26,6 +32,7 @@ import org.eclipse.smarthome.core.thing.binding.ThingHandler;
 import org.openhab.binding.heos.discovery.HeosDiscoveryService;
 import org.openhab.binding.heos.handler.HeosBridgeHandler;
 import org.openhab.binding.heos.handler.HeosPlayerHandler;
+import org.osgi.framework.ServiceRegistration;
 import org.osgi.service.component.ComponentContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,6 +53,12 @@ public class HeosHandlerFactory extends BaseThingHandlerFactory {
     private HeosDiscoveryService heosDiscoveryService;
     // optional OPML URL that can be configured through configuration admin
     private String opmlUrl = null;
+    private AudioHTTPServer audioHTTPServer;
+
+    // url (scheme+server+port) to use for playing notification sounds
+    private String callbackUrl = null;
+
+    private Map<String, ServiceRegistration<AudioSink>> audioSinkRegistrations = new ConcurrentHashMap<>();
 
     private final static Collection<ThingTypeUID> SUPPORTED_THING_TYPES_UIDS = Lists
             .newArrayList(HEOSPLAYER_THING_TYPE_UID, HEOSBRIDGE_THING_TYPE_UID);
@@ -91,7 +104,15 @@ public class HeosHandlerFactory extends BaseThingHandlerFactory {
         } else if (thingTypeUID.equals(HEOSPLAYER_THING_TYPE_UID)) {
             logger.debug("Creating a HeosPlayer for thing '{}' with UDN '{}'", thing.getUID(),
                     thing.getConfiguration().get(PLAYER_PID));
-            return new HeosPlayerHandler(thing, thing.getUID().getId());
+            String callbackUrl = createCallbackUrl();
+
+            HeosPlayerHandler handler = new HeosPlayerHandler(thing, thing.getUID().getId());
+            HeosAudioSink audioSink = new HeosAudioSink(handler, audioHTTPServer, callbackUrl);
+            @SuppressWarnings("unchecked")
+            ServiceRegistration<AudioSink> reg = (ServiceRegistration<AudioSink>) bundleContext
+                    .registerService(AudioSink.class.getName(), audioSink, new Hashtable<String, Object>());
+            audioSinkRegistrations.put(thing.getUID().toString(), reg);
+            return handler;
         }
 
         return null;
@@ -126,6 +147,35 @@ public class HeosHandlerFactory extends BaseThingHandlerFactory {
 
     protected void unsetDiscoveryServiceRegistry(DiscoveryServiceRegistry discoveryServiceRegistry) {
         this.discoveryServiceRegistry = null;
+    }
+
+    private String createCallbackUrl() {
+        if (callbackUrl != null) {
+            return callbackUrl;
+        } else {
+            final String ipAddress = NetUtil.getLocalIpv4HostAddress();
+            if (ipAddress == null) {
+                logger.warn("No network interface could be found.");
+                return null;
+            }
+
+            // we do not use SSL as it can cause certificate validation issues.
+            final int port = HttpServiceUtil.getHttpServicePort(bundleContext);
+            if (port == -1) {
+                logger.warn("Cannot find port of the http service.");
+                return null;
+            }
+
+            return "http://" + ipAddress + ":" + port;
+        }
+    }
+
+    protected void setAudioHTTPServer(AudioHTTPServer audioHTTPServer) {
+        this.audioHTTPServer = audioHTTPServer;
+    }
+
+    protected void unsetAudioHTTPServer(AudioHTTPServer audioHTTPServer) {
+        this.audioHTTPServer = null;
     }
 
 }

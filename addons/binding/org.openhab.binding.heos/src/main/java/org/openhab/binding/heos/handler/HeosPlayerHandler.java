@@ -20,7 +20,6 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 
 import org.eclipse.smarthome.config.core.Configuration;
 import org.eclipse.smarthome.config.discovery.DiscoveryListener;
@@ -58,8 +57,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.gson.Gson;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
 
 /**
  * The {@link HeosPlayerHandler} is responsible for handling commands, which are
@@ -99,7 +96,6 @@ public class HeosPlayerHandler extends BaseThingHandler implements DiscoveryList
 
         if (configuration.get("pid") != null) {
             onUpdate();
-            super.initialize();
         } else {
             logger.warn("Cannot initalize the HeosPlayer. PID not set.");
         }
@@ -110,10 +106,10 @@ public class HeosPlayerHandler extends BaseThingHandler implements DiscoveryList
     public void bridgeStatusChanged(ThingStatusInfo bridgeStatusInfo) {
         if (bridgeStatusInfo.getStatus() == ThingStatus.ONLINE) {
             try {
-                HeosBridgeHandler tellHandler = (HeosBridgeHandler) getBridge().getHandler();
-                logger.debug("Init bridge for {}, bridge:{}", pid, tellHandler);
-                if (tellHandler != null) {
-                    this.bridgeHandler = tellHandler;
+                HeosBridgeHandler heosHandler = (HeosBridgeHandler) getBridge().getHandler();
+                logger.debug("Init bridge for {}, bridge:{}", pid, heosHandler);
+                if (heosHandler != null) {
+                    this.bridgeHandler = heosHandler;
                     this.bridgeHandler.registerDeviceStatusListener(this);
                     Configuration config = editConfiguration();
                     HeosPlayer dev = bridgeHandler.getPlayer(pid);
@@ -126,13 +122,9 @@ public class HeosPlayerHandler extends BaseThingHandler implements DiscoveryList
                             config.put(HeosBindingConstants.PLAYER_MODEL, dev.getModel());
                         }
                         updateConfiguration(config);
-                        updateMediaInfo();
-                        updatePlayerState();
-
+                        updateStatus(ThingStatus.ONLINE);
                     } else {
-                        logger.warn(
-                                "Could not find {}, please make sure it is defined and that telldus service is running",
-                                pid);
+                        logger.warn("Could not find {}, it is turned on", pid);
                         updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.COMMUNICATION_ERROR);
                     }
 
@@ -147,8 +139,7 @@ public class HeosPlayerHandler extends BaseThingHandler implements DiscoveryList
     }
 
     private void onUpdate() {
-        // TODO Auto-generated method stub
-        if (getBridge().getStatus() == ThingStatus.ONLINE) {
+        if (getBridge() != null && getBridge().getStatus() == ThingStatus.ONLINE) {
             bridgeStatusChanged(getBridge().getStatusInfo());
         }
     }
@@ -157,6 +148,17 @@ public class HeosPlayerHandler extends BaseThingHandler implements DiscoveryList
     public void handleCommand(ChannelUID channelUID, Command command) {
         if (command instanceof RefreshType) {
             logger.debug("Refresh command received.");
+            try {
+                switch (channelUID.getId()) {
+                    case CONTROL:
+                        updatePlayerState();
+                    case CURRENTALBUM:
+                        updateMediaInfo();
+                }
+            } catch (IOException e) {
+                logger.error("Failed to update state", e);
+            }
+
         } else {
             switch (channelUID.getId()) {
                 case LED:
@@ -318,8 +320,6 @@ public class HeosPlayerHandler extends BaseThingHandler implements DiscoveryList
             if (command instanceof OnOffType || command instanceof IncreaseDecreaseType
                     || command instanceof DecimalType || command instanceof PercentType) {
 
-                Map<String, String> inputs = new HashMap<String, String>();
-
                 String newValue = null;
                 if (command instanceof IncreaseDecreaseType && command == IncreaseDecreaseType.INCREASE) {
                     int i = Integer.valueOf(this.getVolume());
@@ -469,40 +469,19 @@ public class HeosPlayerHandler extends BaseThingHandler implements DiscoveryList
             // stop whatever is currently playing
             coordinator.stop();
 
-            // clear any tracks which are pending in the queue
-            coordinator.removeAllTracksFromQueue();
-
-            // add the new track we want to play to the queue
-            // The url will be prefixed with x-file-cifs if it is NOT a http URL
-            if (!url.startsWith("x-") && (!url.startsWith("http"))) {
-                // default to file based url
-                url = "x-file-cifs:" + url;
-            }
-            coordinator.addURIToQueue(url, "", 0, true);
-
-            // set the current playlist to our new queue
-            coordinator.setCurrentURI("x-rincon-queue:" + pid + "#0", "");
-
-            // take the system off mute
-            coordinator.setMute(OnOffType.OFF);
-
-            // start jammin'
-            coordinator.play();
+            coordinator.playURL(url);
         }
 
     }
 
+    private void playURL(String url) {
+        // TODO Auto-generated method stub
+        sendCommand(BROWSE_PLAY_STREAM, "url=" + url);
+    }
+
     public void playQueue(Command command) {
-        HeosPlayerHandler coordinator = getHandlerByName(getCoordinator());
+        // HeosPlayerHandler coordinator = getHandlerByName(getCoordinator());
 
-        // set the current playlist to our new queue
-        coordinator.setCurrentURI("x-rincon-queue:" + pid + "#0", "");
-
-        // take the system off mute
-        coordinator.setMute(OnOffType.OFF);
-
-        // start jammin'
-        coordinator.play();
     }
 
     public void setLed(Command command) {
@@ -525,14 +504,10 @@ public class HeosPlayerHandler extends BaseThingHandler implements DiscoveryList
     }
 
     public void removeMember(Command command) {
-        if (command != null && command instanceof StringType) {
-            HeosPlayerHandler oldmemberHandler = getHandlerByName(command.toString());
-
-            oldmemberHandler.becomeStandAlonePlayer();
-            HeosPlayer entry = new HeosPlayer("", "", "", "", "", "", "",
-                    "x-rincon-queue:" + oldmemberHandler.pid + "#0");
-            oldmemberHandler.setCurrentURI(entry);
-        }
+        // if (command != null && command instanceof StringType) {
+        // HeosPlayerHandler oldmemberHandler = getHandlerByName(command.toString());
+        //
+        // }
     }
 
     public void previous() {
@@ -683,6 +658,7 @@ public class HeosPlayerHandler extends BaseThingHandler implements DiscoveryList
                     case EVENT_PLAYER_VOLUME_CHANGED:
                     case EVENT_REPEAT_MODE_CHANGED:
                     case EVENT_SHUFFLE_MODE_CHANGE:
+                    case EVENT_PLAYBACK_ERROR:
                         handleEvent(message);
                         break;
                     default:
@@ -696,17 +672,17 @@ public class HeosPlayerHandler extends BaseThingHandler implements DiscoveryList
         }
     }
 
-    private void handleShortReply(HeosMessage message) {
-        if (message.getPayload() != null) {
-            JsonObject obj = message.getPayload().getAsJsonObject();
-            HashMap<String, String> list = new HashMap<String, String>();
-            for (Entry<String, JsonElement> entry : obj.entrySet()) {
-                list.put(entry.getKey(), entry.getValue().getAsString());
-            }
-            handleStateChanges(list);
-        }
-
-    }
+    // private void handleShortReply(HeosMessage message) {
+    // if (message.getPayload() != null) {
+    // JsonObject obj = message.getPayload().getAsJsonObject();
+    // HashMap<String, String> list = new HashMap<String, String>();
+    // for (Entry<String, JsonElement> entry : obj.entrySet()) {
+    // list.put(entry.getKey(), entry.getValue().getAsString());
+    // }
+    // handleStateChanges(list);
+    // }
+    //
+    // }
 
     public static Map<String, String> splitQuery(String url) throws UnsupportedEncodingException {
         Map<String, String> query_pairs = new LinkedHashMap<String, String>();
@@ -737,6 +713,9 @@ public class HeosPlayerHandler extends BaseThingHandler implements DiscoveryList
         }
         if (params.containsKey("level")) {
             updateVolume((params.get("level")));
+        }
+        if (params.containsKey("error")) {
+            updateState(CURRENTTITLE, createStringType(params.get("error")));
         }
         stateMap.putAll(params);
     }
@@ -780,5 +759,9 @@ public class HeosPlayerHandler extends BaseThingHandler implements DiscoveryList
 
     private StringType createStringType(String valueAsString) {
         return new StringType(valueAsString != null ? valueAsString : "");
+    }
+
+    public void playNotificationSoundURI(StringType stringType) {
+        playURI(stringType);
     }
 }

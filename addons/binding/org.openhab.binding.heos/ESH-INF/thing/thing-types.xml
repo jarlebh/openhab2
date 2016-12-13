@@ -30,7 +30,6 @@
             <channel id="playlist" typeId="playlist" />
             <channel id="playqueue" typeId="playqueue" />           
             <channel id="playtrack" typeId="playtrack" />           
-            <channel id="playuri" typeId="playuri" />
             <channel id="publicaddress" typeId="publicaddress" />
             <channel id="radio" typeId="radio" />
             <channel id="remove" typeId="remove" />
@@ -45,6 +44,7 @@
 
         <config-description>
             <parameter name="pid" type="integer">
+                <context>thing</context>
                 <label>Player ID</label>
                 <description>The ID identifies the Heos Player.</description>
                 <required>true</required>
@@ -63,37 +63,19 @@
     </thing-type>
 
     <channel-type id="add" advanced="true">
-        <item-type>String</item-type>
+        <kind>trigger</kind>
         <label>Add</label>
-        <description>Add a Zone Player to the group of the given Zone Player</description>
-    </channel-type>
-
-    <channel-type id="alarm" advanced="true">
-        <item-type>Switch</item-type>
-        <label>Set Alarm</label>
-        <description>Set the first occurring alarm either ON or OFF. Alarms have first have to be defined through the Sonos Controller app</description>
-    </channel-type>
-
-    <channel-type id="alarmproperties" advanced="true">
-        <item-type>String</item-type>
-        <label>Alarm Properties</label>
-        <description>Properties of the alarm currently running</description>
-    </channel-type>
-
-    <channel-type id="alarmrunning" advanced="true">
-        <item-type>Switch</item-type>
-        <label>Alarm is running</label>
-        <description>Set to ON if the alarm was triggered</description>
+        <description>Add a Heos Player to the group of the given Heos Player</description>
+        <event></event>
     </channel-type>
 
     <channel-type id="control">
         <item-type>Player</item-type>
         <label>Control</label>
-        <description>Control the Zone Player, e.g. start/stop/next/previous/ffward/rewind</description>
+        <description>Control the Heos Player, e.g. start/stop/next/previous/ffward/rewind</description>
         <category>Player</category>
     </channel-type>
-    
-        <channel-type id="currentalbum">
+    <channel-type id="currentalbum">
         <item-type>String</item-type>
         <label>Current Album</label>
         <description>Name of the album currently playing</description>
@@ -110,17 +92,17 @@
         <label>Current Title</label>
         <description>Title of the song currently playing</description>
     </channel-type>
-    <channel-type id="sourceid">
+    <channel-type id="sourceid" advanced="true">
         <item-type>String</item-type>
         <label>Source ID</label>
         <description>ID of the source playing</description>
     </channel-type>
-     <channel-type id="mediaid">
+     <channel-type id="mediaid" advanced="true">
         <item-type>String</item-type>
         <label>Media ID</label>
         <description>ID of the media playing</description>
     </channel-type>
-    <channel-type id="currenttrack" advanced="true">
+    <channel-type id="currenttrack">
         <item-type>String</item-type>
         <label>Current Track</label>
         <description>Name of the current track or radio station currently playing</description>
@@ -135,31 +117,37 @@
     <channel-type id="led" advanced="true">
         <item-type>Switch</item-type>
         <label>Led</label>
-        <description>Set or get the status of the white led on the front of the Zone Player </description>
+        <description>Set or get the status of the white led on the front of the Heos Player </description>
     </channel-type>
 
     <channel-type id="linein" advanced="true">
         <item-type>Switch</item-type>
         <label>Line-in connected</label>
-        <description>Indicator set to ON when the line-in of the Zone Player is connected</description>
+        <description>Indicator set to ON when the line-in of the Heos Player is connected</description>
+        <event>
+          <options>
+            <option value="PRESSED">pressed</option>
+            <option value="RELEASED">released</option>
+          </options>
+        </event>
     </channel-type>
 
     <channel-type id="localcoordinator" advanced="true">
         <item-type>Switch</item-type>
         <label>Local Coordinator</label>
-        <description>Indicator set to ON if the this Zone Player is the Zone Group Coordinator</description>
+        <description>Indicator set to ON if the this Heos Player is the Zone Group Coordinator</description>
     </channel-type>
 
     <channel-type id="mute" advanced="true">
         <item-type>Switch</item-type>
         <label>Mute</label>
-        <description>Set or get the mute state of the master volume of the Zone Player</description>
+        <description>Set or get the mute state of the master volume of the Heos Player</description>
     </channel-type>
 
     <channel-type id="playlinein" advanced="true">
-        <item-type>String</item-type>
+        <kind>trigger</kind>
         <label>Play Line-in</label>
-        <description>Play the Line-in of the the Zone Player corresponding to the given UIN</description>
+        <description>Play the Line-in of the the Heos Player corresponding to the given UIN</description>
     </channel-type>
 
     <channel-type id="playlist" advanced="true">
@@ -178,54 +166,36 @@
         <item-type>Number</item-type>
         <label>Play Track</label>
         <description>Play the given track number from the current queue</description>
-    </channel-type> 
-    
-    <channel-type id="playuri" advanced="true">
-        <item-type>String</item-type>
-        <label>Play URI</label>
-        <description>Play the given URI</description>
-    </channel-type>
+    </channel-type>     
 
     <channel-type id="publicaddress" advanced="true">
-        <item-type>Switch</item-type>
+        <kind>trigger</kind>
         <label>Public Address</label>
-        <description>Put all Zone Players in one group, and stream audio from the line-in from the Zone Player that triggered the command</description>
+        <description>Put all Heos Players in one group, and stream audio from the line-in from the Heos Player that triggered the command</description>
+         <event>
+          <options>
+            <option value="PRESSED">pressed</option>
+            <option value="RELEASED">released</option>
+          </options>
+        </event>
     </channel-type>
 
-    <channel-type id="radio" advanced="true">
+    <channel-type id="radio">
         <item-type>String</item-type>
         <label>Radio</label>
         <description>Play the given radio station. The radio station has to be predefined in the Sonos Controller app</description>
     </channel-type>
 
     <channel-type id="remove" advanced="true">
-        <item-type>String</item-type>
+        <kind>trigger</kind>         
         <label>Remove</label>
-        <description>Remove the given Zone Player to the group of this Zone Player</description>
-    </channel-type>
-
-    <channel-type id="restore" advanced="true">
-        <item-type>Switch</item-type>
-        <label>Restore</label>
-        <description>Restore the state of the Zone Player</description>
-    </channel-type>
-
-    <channel-type id="restoreall" advanced="true">
-        <item-type>Switch</item-type>
-        <label>Restore All</label>
-        <description>Restore the state of all the Zone Players</description>
-    </channel-type>
-
-    <channel-type id="save" advanced="true">
-        <item-type>Switch</item-type>
-        <label>Save</label>
-        <description>Save the state of the Zone Player</description>
-    </channel-type>
-
-    <channel-type id="saveall" advanced="true">
-        <item-type>Switch</item-type>
-        <label>Save All</label>
-        <description>Save the state of all the Zone Players</description>
+        <description>Remove the given Heos Player from the group of this Heos Player</description>
+         <event>
+          <options>
+            <option value="PRESSED">pressed</option>
+            <option value="RELEASED">released</option>
+          </options>
+        </event>
     </channel-type>
 
     <channel-type id="snooze" advanced="true">
@@ -237,20 +207,27 @@
     <channel-type id="standalone" advanced="true">
         <item-type>Switch</item-type>
         <label>Stand Alone</label>
-        <description>Make the Zone Player leave its Group and become a standalone Zone Player</description>
+        <description>Make the Heos Player leave its Group and become a standalone Heos Player</description>
     </channel-type>
 
     <!-- The Sonos State Type -->
     <channel-type id="state" advanced="true">
         <item-type>String</item-type>
         <label>State</label>
-        <description>The State channel contains state of the Zone Player, e.g. PLAYING, STOPPED,...</description>
+        <description>The State channel contains state of the Heos Player, e.g. PLAYING, STOPPED,...</description>
     </channel-type>
 
     <channel-type id="stop" advanced="true">
-        <item-type>Switch</item-type>
+        <kind>trigger</kind>        
         <label>Stop</label>
-        <description>Stop the Zone Player</description>
+        <description>Stop the Heos Player</description>
+        <event>
+	      <options>
+	        <option value="PRESSED">pressed</option>
+	        <option value="RELEASED">released</option>
+	        <option value="DOUBLE_PRESSED">double pressed</option>
+	      </options>
+	    </event>
     </channel-type>
 
     <channel-type id="volume">
@@ -269,13 +246,13 @@
     <channel-type id="zonegroupid" advanced="true">
         <item-type>String</item-type>
         <label>Zone Group ID</label>
-        <description>Id of the Zone Group the Zone Player belongs to</description>
+        <description>Id of the Zone Group the Heos Player belongs to</description>
     </channel-type>
 
     <channel-type id="zonename" advanced="true">
         <item-type>String</item-type>
         <label>Zone Name</label>
-        <description>Name of the Zone Group the Zone Player belongs to</description>
+        <description>Name of the Zone Group the Heos Player belongs to</description>
     </channel-type>
 
 </thing:thing-descriptions>
