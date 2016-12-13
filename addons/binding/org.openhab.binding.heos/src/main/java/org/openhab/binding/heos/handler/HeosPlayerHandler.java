@@ -44,6 +44,7 @@ import org.eclipse.smarthome.core.thing.ThingStatusInfo;
 import org.eclipse.smarthome.core.thing.ThingTypeUID;
 import org.eclipse.smarthome.core.thing.ThingUID;
 import org.eclipse.smarthome.core.thing.binding.BaseThingHandler;
+import org.eclipse.smarthome.core.thing.binding.BridgeHandler;
 import org.eclipse.smarthome.core.types.Command;
 import org.eclipse.smarthome.core.types.RefreshType;
 import org.openhab.binding.heos.HeosBindingConstants;
@@ -104,9 +105,12 @@ public class HeosPlayerHandler extends BaseThingHandler implements DiscoveryList
     @Override
 
     public void bridgeStatusChanged(ThingStatusInfo bridgeStatusInfo) {
-        if (bridgeStatusInfo.getStatus() == ThingStatus.ONLINE) {
+        logger.debug("HeosPlayer {} bridgeStatusChanged {}", pid, bridgeStatusInfo);
+        if (bridgeStatusInfo.getStatus().equals(ThingStatus.ONLINE)) {
             try {
-                HeosBridgeHandler heosHandler = (HeosBridgeHandler) getBridge().getHandler();
+                Bridge bridge = getBridge();
+                BridgeHandler handler = bridge.getHandler();
+                HeosBridgeHandler heosHandler = (HeosBridgeHandler) handler;
                 logger.debug("Init bridge for {}, bridge:{}", pid, heosHandler);
                 if (heosHandler != null) {
                     this.bridgeHandler = heosHandler;
@@ -147,7 +151,7 @@ public class HeosPlayerHandler extends BaseThingHandler implements DiscoveryList
     @Override
     public void handleCommand(ChannelUID channelUID, Command command) {
         if (command instanceof RefreshType) {
-            logger.debug("Refresh command received.");
+            logger.debug("Refresh command received. {}", channelUID);
             try {
                 switch (channelUID.getId()) {
                     case CONTROL:

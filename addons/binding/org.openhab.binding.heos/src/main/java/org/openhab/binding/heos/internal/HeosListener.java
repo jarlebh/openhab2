@@ -33,7 +33,7 @@ import com.google.gson.Gson;
  * @author Jeroen Idserda
  * @since 1.7.0
  */
-public class HeosListener implements Runnable, checkSquence {
+public class HeosListener implements Runnable {
 
     public static final int HEOS_PORT = 1255;
 
