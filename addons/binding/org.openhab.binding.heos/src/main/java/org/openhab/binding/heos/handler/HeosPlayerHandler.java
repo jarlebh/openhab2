@@ -44,7 +44,7 @@ import org.eclipse.smarthome.core.thing.ThingStatusInfo;
 import org.eclipse.smarthome.core.thing.ThingTypeUID;
 import org.eclipse.smarthome.core.thing.ThingUID;
 import org.eclipse.smarthome.core.thing.binding.BaseThingHandler;
-import org.eclipse.smarthome.core.thing.binding.BridgeHandler;
+import org.eclipse.smarthome.core.thing.binding.ThingHandler;
 import org.eclipse.smarthome.core.types.Command;
 import org.eclipse.smarthome.core.types.RefreshType;
 import org.openhab.binding.heos.HeosBindingConstants;
@@ -108,8 +108,8 @@ public class HeosPlayerHandler extends BaseThingHandler implements DiscoveryList
         logger.debug("HeosPlayer {} bridgeStatusChanged {}", pid, bridgeStatusInfo);
         if (bridgeStatusInfo.getStatus().equals(ThingStatus.ONLINE)) {
             try {
-                Bridge bridge = getBridge();
-                BridgeHandler handler = bridge.getHandler();
+                Thing bridge = getBridge();
+                ThingHandler handler = bridge.getHandler();
                 HeosBridgeHandler heosHandler = (HeosBridgeHandler) handler;
                 logger.debug("Init bridge for {}, bridge:{}", pid, heosHandler);
                 if (heosHandler != null) {
@@ -750,7 +750,7 @@ public class HeosPlayerHandler extends BaseThingHandler implements DiscoveryList
         HeosMediaInfo mediaInfo = gson.fromJson(message.getPayload(), HeosMediaInfo.class);
         if (mediaInfo != null) {
             updateStatus(ThingStatus.ONLINE);
-            logger.info("Update MediaInfo for {} to {} msg {}", getThing().getUID().getId(), mediaInfo,
+            logger.debug("Update MediaInfo for {} to {} msg {}", getThing().getUID().getId(), mediaInfo,
                     message.getHeos());
             updateState(CURRENTALBUM, createStringType(mediaInfo.getAlbum()));
             updateState(CURRENTARTIST, createStringType(mediaInfo.getArtist()));

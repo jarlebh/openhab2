@@ -49,6 +49,8 @@ public enum HeosCommand {
     EVENT_REPEAT_MODE_CHANGED("event", "repeat_mode_changed"),
     @SerializedName("event/groups_changed")
     EVENT_GROUPS_CHANGED("event", "groups_changed"),
+    @SerializedName("event/group_volume_changed")
+    EVENT_GROUPS_VOLUME_CHANGED("event", "group_volume_changed"),
     @SerializedName("event/player_now_playing_progress")
     EVENT_PLAYER_PROGRESS("event", "player_now_playing_progress"),
     @SerializedName("event/player_volume_changed")

@@ -178,14 +178,18 @@ public class HeosBridgeHandler extends BaseBridgeHandler implements DeviceStatus
             case PLAYER_GET_GROUPS:
                 updateGroups(message);
                 break;
+            case EVENT_GROUPS_VOLUME_CHANGED:
+
+                break;
             case GROUP_SET_GROUP:
+                break;
             default:
                 logger.error("unhandled group command {} ", message.getHeos().getCommand());
         }
     }
 
     private void updateGroups(HeosMessage message) {
-        groups = gson.fromJson(message.getPayload(), HeosPlayerGroup[].class);
+        groups = createJSONObject(message, HeosPlayerGroup[].class);
         for (HeosPlayerGroup group : groups) {
             for (GroupMember member : group.getPlayers()) {
                 HeosPlayerHandler handler = getPlayerHandler(member.getPid());
@@ -194,6 +198,10 @@ public class HeosBridgeHandler extends BaseBridgeHandler implements DeviceStatus
                 }
             }
         }
+    }
+
+    private <T> T createJSONObject(HeosMessage message, Class<T> jsonObjectClass) {
+        return gson.fromJson(message.getPayload(), jsonObjectClass);
     }
 
     private void handleLogin(HeosMessage message) {
@@ -210,7 +218,7 @@ public class HeosBridgeHandler extends BaseBridgeHandler implements DeviceStatus
     private void updateMediaList(HeosMessage message) {
         String sid = extractFromURL(message, "sid");
         if (message.getPayload() != null) {
-            musicList.put(sid, gson.fromJson(message.getPayload(), HeosMusic[].class));
+            musicList.put(sid, createJSONObject(message, HeosMusic[].class));
         }
     }
 
@@ -238,7 +246,7 @@ public class HeosBridgeHandler extends BaseBridgeHandler implements DeviceStatus
     }
 
     private void updateMusicSources(HeosMessage message) {
-        musicSources = gson.fromJson(message.getPayload(), HeosMusicSource[].class);
+        musicSources = createJSONObject(message, HeosMusicSource[].class);
         for (HeosMusicSource source : musicSources) {
             if (source.getName().equals("TuneIn")) {
                 sendCommand(HeosCommand.BROWSE_SEARCH_CRITERIA, "sid=" + source.getSid());
@@ -249,7 +257,7 @@ public class HeosBridgeHandler extends BaseBridgeHandler implements DeviceStatus
     }
 
     private void updateSearchCriterias(HeosMessage message) {
-        radioSearchCriterias = gson.fromJson(message.getPayload(), HeosSearchCriterias[].class);
+        radioSearchCriterias = createJSONObject(message, HeosSearchCriterias[].class);
     }
 
     private void updatePlayer(HeosMessage message) {
@@ -282,7 +290,7 @@ public class HeosBridgeHandler extends BaseBridgeHandler implements DeviceStatus
     }
 
     private void updatePlayersList(HeosMessage message) {
-        HeosPlayer[] players = gson.fromJson(message.getPayload(), HeosPlayer[].class);
+        HeosPlayer[] players = createJSONObject(message, HeosPlayer[].class);
         if (players != null) {
             for (HeosPlayer player : players) {
                 logger.debug("Player: " + player);
