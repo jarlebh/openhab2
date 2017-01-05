@@ -34,5 +34,5 @@ public interface HeosUpdateReceivedCallback {
     /**
      * The listener has lost connection to the receiver.
      */
-    public void listenerDisconnected();
+    public void listenerDisconnected(String message);
 }

@@ -37,6 +37,10 @@ public enum HeosCommand {
     SYSTEM_HEARTBEAT("system", "heart_beat"),
     @SerializedName("system/sign_in")
     SYSTEM_SIGNIN("system", "sign_in"),
+    @SerializedName("system/sign_out")
+    SYSTEM_SIGNOUT("system", "sign_out"),
+    @SerializedName("system/check_account")
+    SYSTEM_CHECK_ACCOUNT("system", "check_account"),
     @SerializedName("event/player_state_changed")
     EVENT_STATECHANGE("event", "player_state_changed"),
     @SerializedName("event/player_playback_error")

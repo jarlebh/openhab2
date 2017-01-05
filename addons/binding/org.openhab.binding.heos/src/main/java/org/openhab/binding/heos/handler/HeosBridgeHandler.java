@@ -75,16 +75,15 @@ public class HeosBridgeHandler extends BaseBridgeHandler implements DeviceStatus
     public void rescanHeosPlayers() {
         try {
             if ((System.currentTimeMillis() - lastScan) > (10 * 1000)) {
+                logger.debug("Scanning players");
                 lastScan = System.currentTimeMillis();
                 if (!loggedIn) {
-                    String userName = (String) getConfig().get(HeosBindingConstants.USERNAME);
-                    String password = (String) getConfig().get(HeosBindingConstants.PASSWORD);
-                    if (userName != null && password != null) {
-                        sendCommand(HeosCommand.SYSTEM_SIGNIN, "un=" + userName + "&pw=" + password);
-                    }
+                    sendCommand(HeosCommand.SYSTEM_CHECK_ACCOUNT, null);
                 }
                 sendCommand(HeosCommand.GETPLAYERS, null);
                 sendCommand(HeosCommand.PLAYER_GET_GROUPS, null);
+            } else {
+                logger.debug("Ignored scan request within 10 sec. of previous request");
             }
         } catch (Exception e) {
             logger.error("Failed to get devices", e);
@@ -154,11 +153,14 @@ public class HeosBridgeHandler extends BaseBridgeHandler implements DeviceStatus
                         updateGroup(message);
                         break;
                     case EVENT_GROUPS_CHANGED:
-
                     case EVENT_PLAYERS_CHANGED:
-                    case EVENT_SOURCES_CHANGED:
                         rescanHeosPlayers();
                         break;
+                    case SYSTEM_CHECK_ACCOUNT:
+                    case SYSTEM_SIGNOUT:
+                        checkLogin(message);
+                        break;
+                    case EVENT_SOURCES_CHANGED:
                     case SYSTEM_HEARTBEAT:
                     case SYSTEM_REGISTER_CHANGEEVENTS:
                         // IGNORE
@@ -169,6 +171,19 @@ public class HeosBridgeHandler extends BaseBridgeHandler implements DeviceStatus
             }
         } else {
             logger.debug("No command, {}", message);
+        }
+
+    }
+
+    private void checkLogin(HeosMessage message) {
+        String userName = (String) getConfig().get(HeosBindingConstants.USERNAME);
+        if (message.getHeos().getMessage().contains("signed_out")) {
+            String password = (String) getConfig().get(HeosBindingConstants.PASSWORD);
+            if (userName != null && password != null) {
+                sendCommand(HeosCommand.SYSTEM_SIGNIN, "un=" + userName + "&pw=" + password);
+            }
+        } else if (!message.getHeos().getMessage().contains(userName)) {
+            sendCommand(HeosCommand.SYSTEM_SIGNOUT, null);
         }
 
     }
@@ -206,7 +221,7 @@ public class HeosBridgeHandler extends BaseBridgeHandler implements DeviceStatus
 
     private void handleLogin(HeosMessage message) {
         String result = message.getHeos().getResult();
-        if (result.equals("error")) {
+        if (result.equals("error") || result.equals("fail")) {
             logger.error("Failed to login {}:{}", result, message.getHeos().getMessage());
         } else {
             loggedIn = true;
@@ -313,13 +328,14 @@ public class HeosBridgeHandler extends BaseBridgeHandler implements DeviceStatus
     @Override
     public void listenerConnected() {
         logger.debug("listenerConnected");
+        lastScan = 0L;
         rescanHeosPlayers();
     }
 
     @Override
-    public void listenerDisconnected() {
-        logger.debug("listenerDisconnected");
-        updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.BRIDGE_OFFLINE);
+    public void listenerDisconnected(String message) {
+        logger.debug("listenerDisconnected {}", message);
+        updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.COMMUNICATION_ERROR, message);
     }
 
     public void unregisterDeviceStatusListener(DeviceStatusListener heosDiscoveryService) {
@@ -380,6 +396,7 @@ public class HeosBridgeHandler extends BaseBridgeHandler implements DeviceStatus
     protected void updateConfiguration(Configuration configuration) {
         // TODO Auto-generated method stub
         super.updateConfiguration(configuration);
+        lastScan = 0L;
         rescanHeosPlayers();
     }
 

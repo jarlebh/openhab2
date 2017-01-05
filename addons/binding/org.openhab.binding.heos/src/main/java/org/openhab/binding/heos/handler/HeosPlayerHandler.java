@@ -116,21 +116,7 @@ public class HeosPlayerHandler extends BaseThingHandler implements DiscoveryList
                     this.bridgeHandler = heosHandler;
                     this.bridgeHandler.registerDeviceStatusListener(this);
                     Configuration config = editConfiguration();
-                    HeosPlayer dev = bridgeHandler.getPlayer(pid);
-
-                    if (dev != null) {
-                        if (dev.getVersion() != null) {
-                            config.put(HeosBindingConstants.PLAYER_VERSION, dev.getVersion());
-                        }
-                        if (dev.getModel() != null) {
-                            config.put(HeosBindingConstants.PLAYER_MODEL, dev.getModel());
-                        }
-                        updateConfiguration(config);
-                        updateStatus(ThingStatus.ONLINE);
-                    } else {
-                        logger.warn("Could not find {}, it is turned on", pid);
-                        updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.COMMUNICATION_ERROR);
-                    }
+                    updateFromBridge(config);
 
                 }
             } catch (Exception e) {
@@ -139,6 +125,24 @@ public class HeosPlayerHandler extends BaseThingHandler implements DiscoveryList
             }
         } else {
             updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.BRIDGE_OFFLINE);
+        }
+    }
+
+    private void updateFromBridge(Configuration config) {
+        HeosPlayer dev = bridgeHandler.getPlayer(pid);
+
+        if (dev != null) {
+            if (dev.getVersion() != null) {
+                config.put(HeosBindingConstants.PLAYER_VERSION, dev.getVersion());
+            }
+            if (dev.getModel() != null) {
+                config.put(HeosBindingConstants.PLAYER_MODEL, dev.getModel());
+            }
+            updateConfiguration(config);
+            updateStatus(ThingStatus.ONLINE);
+        } else {
+            logger.warn("Could not find {}, it is turned on", pid);
+            updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.CONFIGURATION_ERROR, "Could not find Heos Player");
         }
     }
 
@@ -524,13 +528,20 @@ public class HeosPlayerHandler extends BaseThingHandler implements DiscoveryList
 
     public void playRadio(Command command) {
         List<HeosMusic> stations = getFavorites();
+        HeosMusic useStation = null;
         if (stations != null) {
             for (HeosMusic music : stations) {
                 if (music.getName().contains(command.toString())) {
-                    getHandlerByName(getCoordinator()).playMid(getFavorutesSID(), music.getMid());
+                    useStation = music;
                     break;
                 }
             }
+        }
+        if (useStation != null) {
+            logger.debug("Changing to " + useStation.getName());
+            getHandlerByName(getCoordinator()).playMid(getFavorutesSID(), useStation.getMid());
+        } else {
+            logger.warn("Could not find favorite station {}", command.toString());
         }
     }
 
@@ -632,8 +643,11 @@ public class HeosPlayerHandler extends BaseThingHandler implements DiscoveryList
 
     @Override
     public void onDeviceAdded(Bridge bridge, HeosPlayer device) {
-        // TODO Auto-generated method stub
-
+        if (device.getPId().equals(this.pid)) {
+            Configuration config = editConfiguration();
+            updateFromBridge(config);
+            updateConfiguration(config);
+        }
     }
 
     public void updateReceived(HeosMessage message) {

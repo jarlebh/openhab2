@@ -103,7 +103,7 @@ public class HeosListener implements Runnable {
             // Disconnects are not always detected unless you write to the socket.
             sendHeartBeat();
         } catch (IOException e) {
-            callback.listenerDisconnected();
+            callback.listenerDisconnected(e.getMessage());
             logger.error("Error in telnet connection", e);
             connected = false;
         } catch (Exception e) {
@@ -127,11 +127,11 @@ public class HeosListener implements Runnable {
     }
 
     public void shutdown() {
-        disconnect(true);
+        disconnect(true, "SHUTDOWN");
     }
 
     private void connectTelnetClient() {
-        disconnect(false);
+        disconnect(false, "INITIAL CLOSE");
         int delay = 0;
 
         while (!tc.isConnected()) {
@@ -147,19 +147,18 @@ public class HeosListener implements Runnable {
                         commands.add("heos://system/prettify_json_response?enable=off");
                         connected = true;
                         callback.listenerConnected();
-
                         break;
-
                     } catch (NoRouteToHostException e) {
                         logger.error("Cannot connect to {}, removing IP", ipAddrs, e);
-                        disconnect(true);
+                        disconnect(true, e.getMessage());
                         this.ipAddrs.remove(ipAddr);
                     } catch (ConnectException e) {
                         logger.error("Cannot connect to {}", ipAddrs, e);
-                        disconnect(true);
+                        disconnect(true, e.getMessage());
+                        this.ipAddrs.remove(ipAddr);
                     } catch (IOException e) {
                         logger.error("Cannot connect to {}", ipAddrs, e);
-                        disconnect(true);
+                        disconnect(true, e.getMessage());
                     }
                 }
             } catch (InterruptedException e) {
@@ -189,10 +188,10 @@ public class HeosListener implements Runnable {
         }
     }
 
-    private void disconnect(boolean updateListeners) {
-        this.connected = false;
-        if (updateListeners) {
-            callback.listenerDisconnected();
+    private void disconnect(boolean updateListeners, String message) {
+        if (updateListeners && this.connected) {
+            callback.listenerDisconnected(message);
+            this.connected = false;
         }
         if (tc != null && tc.isConnected()) {
             try {
