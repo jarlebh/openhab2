@@ -46,6 +46,7 @@ public class VerisureBindingConstants {
     public final static String CHANNEL_LOCATIONNAME = "locationName";
     public final static String CHANNEL_SETSTATUS = "setstatus";
     public static final String CHANNEL_STATUS_LOCALIZED = "alarmstatuslocalized";
+    public static final String CHANNEL_DOORLOCK = "doorlock";
 
     public final static String CHANNEL_CHANGERNAME = "changername";
     public final static String CHANNEL_TIMESTAMP = "timestamp";

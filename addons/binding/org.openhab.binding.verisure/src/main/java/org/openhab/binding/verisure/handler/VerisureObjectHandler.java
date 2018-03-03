@@ -71,33 +71,33 @@ public class VerisureObjectHandler extends BaseThingHandler implements DeviceSta
                 brige.getHandler().handleCommand(channelUID, command);
             }
             update(session.getVerisureObject(this.id));
-        } else if (channelUID.getId().equals(CHANNEL_SETSTATUS)) {
-            handleChangeDoorState(command);
-            session.refresh();
+        } else if (channelUID.getId().equals(CHANNEL_DOORLOCK)) {
+            handleLockUnlockDoor(command);
+            scheduleImmediateRefresh();
         } else {
             logger.warn("unknown command! {}", command);
         }
     }
 
-    private void handleChangeDoorState(Command command) {
-        if (command.toString().equals("0")) {
-            logger.debug("attempting to turn off alarm!");
+    private void handleLockUnlockDoor(Command command) {
+        if (command == OnOffType.ON) {
+            logger.debug("attempting to lock door!");
+            session.lockDoor(this.id);
+            ChannelUID cuid = new ChannelUID(getThing().getUID(), CHANNEL_STATUS);
+            updateState(cuid, new StringType("pending"));
+        } else if (command == OnOffType.OFF) {
+            logger.debug("attempting to unlock door!");
             session.unLockDoor(this.id);
             ChannelUID cuid = new ChannelUID(getThing().getUID(), CHANNEL_STATUS);
             updateState(cuid, new StringType("pending"));
-        } else if (command.toString().equals("1")) {
-            logger.debug("arming at home");
-            session.lockDoor(this.id);
-            ChannelUID cuid = new ChannelUID(getThing().getUID(), CHANNEL_STATUS);
-            updateState(cuid, new StringType("pending"));
+        }
+    }
 
-        } else if (command.toString().equals("2")) {
-            logger.debug("arming away!");
-            session.lockDoor(this.id);
-            ChannelUID cuid = new ChannelUID(getThing().getUID(), CHANNEL_STATUS);
-            updateState(cuid, new StringType("pending"));
-        } else {
-            logger.debug("unknown command!");
+    private void scheduleImmediateRefresh() {
+        Bridge brige = getBridge();
+        if (brige != null && brige.getHandler() != null) {
+            VerisureBridgeHandler vbh = (VerisureBridgeHandler) brige.getHandler();
+            vbh.scheduleImmediateRefresh();
         }
     }
 
@@ -141,9 +141,7 @@ public class VerisureObjectHandler extends BaseThingHandler implements DeviceSta
             updateSmartPlugState(obj);
         } else {
             logger.warn("cant handle this thingtypeuid: {}", getThing().getThingTypeUID());
-
         }
-
     }
 
     private void updateSensorState(VerisureSensorJSON obj) {
@@ -168,7 +166,18 @@ public class VerisureObjectHandler extends BaseThingHandler implements DeviceSta
 
     private void updateLockState(VerisureAlarmJSON status) {
         ChannelUID cuid = new ChannelUID(getThing().getUID(), CHANNEL_STATUS);
-        updateState(cuid, new StringType(status.getStatus()));
+        String lockstatus = status.getStatus();
+        updateState(cuid, new StringType(lockstatus));
+
+        cuid = new ChannelUID(getThing().getUID(), CHANNEL_DOORLOCK);
+        if ("locked".equals(lockstatus)) {
+            updateState(cuid, OnOffType.ON);
+        } else if ("unlocked".equals(lockstatus)) {
+            updateState(cuid, OnOffType.OFF);
+        } else if ("pending".equals(lockstatus)) {
+            // Schedule another refresh.
+            this.scheduleImmediateRefresh();
+        }
 
         cuid = new ChannelUID(getThing().getUID(), CHANNEL_CHANGERNAME);
         updateState(cuid, new StringType(status.getName()));
@@ -212,7 +221,6 @@ public class VerisureObjectHandler extends BaseThingHandler implements DeviceSta
         } else {
             updateState(cuid, OnOffType.OFF);
         }
-
     }
 
     @Override
@@ -220,7 +228,6 @@ public class VerisureObjectHandler extends BaseThingHandler implements DeviceSta
         if (updateObject.getId().equals(this.id)) {
             update(updateObject);
         }
-
     }
 
     @Override

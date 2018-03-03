@@ -240,11 +240,13 @@ public class VerisureSession {
     private String sendHTTPpost(String urlString, String data) {
         try {
             org.eclipse.jetty.client.api.Request request = httpClient.newRequest(urlString).method(HttpMethod.POST);
-            request = request.header("x-csrf-token", csrf).header("Content-Type",
+            request.header("x-csrf-token", csrf).header("Accept", "application/json");
+            request.content(new BytesContentProvider(data.getBytes()),
                     "application/x-www-form-urlencoded; charset=UTF-8");
-            request = request.header("x-csrf-token", csrf).header("Accept", "application/json");
-            ContentResponse response = request.content(new BytesContentProvider(data.getBytes()), "text/plain").send();
-            return response.getContentAsString();
+            ContentResponse response = request.send();
+            String content = response.getContentAsString();
+            logger.debug("HTTP Response ({}) Body:{}", response.getStatus(), content);
+            return content;
         } catch (Exception e) {
             logger.warn("had an exception {}", e.toString(), e);
         }
@@ -351,7 +353,7 @@ public class VerisureSession {
     }
 
     public boolean lockDoor(String door) {
-        logger.debug("Sending command to disarm the alarm!");
+        logger.debug("Sending command to lock the door!");
 
         String url = BASEURL + LOCK_COMMAND;
         String data = "code=" + pinCode + "&state=LOCKED&deviceLabel=" + door + "&_csrf=" + csrf;

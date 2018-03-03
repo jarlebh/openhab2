@@ -15,6 +15,7 @@ import java.util.Collections;
 import java.util.Set;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.ReentrantLock;
 
 import org.eclipse.smarthome.config.core.Configuration;
 import org.eclipse.smarthome.core.library.types.StringType;
@@ -27,6 +28,7 @@ import org.eclipse.smarthome.core.thing.ThingTypeUID;
 import org.eclipse.smarthome.core.thing.binding.BaseBridgeHandler;
 import org.eclipse.smarthome.core.types.Command;
 import org.eclipse.smarthome.core.types.RefreshType;
+import org.eclipse.smarthome.core.types.UnDefType;
 import org.openhab.binding.verisure.internal.DeviceStatusListener;
 import org.openhab.binding.verisure.internal.VerisureBridgeConfiguration;
 import org.openhab.binding.verisure.internal.VerisureSession;
@@ -64,6 +66,7 @@ public class VerisureBridgeHandler extends BaseBridgeHandler {
     private String pinCode;
     ScheduledFuture<?> refreshJob;
     ScheduledFuture<?> immediateRefreshJob;
+    ReentrantLock immediateRefreshJobLock = new ReentrantLock();
 
     private VerisureSession session = null;
 
@@ -102,6 +105,7 @@ public class VerisureBridgeHandler extends BaseBridgeHandler {
             logger.warn("unknown command! {}", command);
         }
         scheduleImmediateRefresh();
+
     }
 
     private void handleChangeAlarmState(Command command) {
@@ -126,15 +130,27 @@ public class VerisureBridgeHandler extends BaseBridgeHandler {
         }
     }
 
-    private void scheduleImmediateRefresh() {
-        // We schedule in 10 sec, to avoid multiple updates
-        if (refreshJob != null) {
-            logger.debug("Current remaining delay {}", refreshJob.getDelay(TimeUnit.SECONDS));
-            if (refreshJob.getDelay(TimeUnit.SECONDS) > REFRESH_DELAY) {
-                if (immediateRefreshJob == null || immediateRefreshJob.isDone()) {
-                    immediateRefreshJob = scheduler.schedule(pollingRunnable, REFRESH_DELAY, TimeUnit.SECONDS);
+    void scheduleImmediateRefresh() {
+        this.immediateRefreshJobLock.lock();
+        try {
+            // We schedule in 10 sec, to avoid multiple updates
+            if (refreshJob != null) {
+                logger.debug("Current remaining delay {}", refreshJob.getDelay(TimeUnit.SECONDS));
+                if (refreshJob.getDelay(TimeUnit.SECONDS) > REFRESH_DELAY) {
+                    if (immediateRefreshJob == null || immediateRefreshJob.getDelay(TimeUnit.SECONDS) <= 0) {
+                        if (immediateRefreshJob != null) {
+                            logger.debug("Current immediateRefreshJob delay {}",
+                                    immediateRefreshJob.getDelay(TimeUnit.SECONDS));
+                        }
+                        // Note we are using getDelay() instead of isDone() as we want to allow Things to schedule a
+                        // refresh if their status is pending. As the status update happens inside the pollingRunnable
+                        // execution the isDone() will return false and would not allow the rescheduling of the task.
+                        immediateRefreshJob = scheduler.schedule(pollingRunnable, REFRESH_DELAY, TimeUnit.SECONDS);
+                    }
                 }
             }
+        } finally {
+            this.immediateRefreshJobLock.unlock();
         }
     }
 
@@ -218,7 +234,8 @@ public class VerisureBridgeHandler extends BaseBridgeHandler {
             updateState(cuid, session.getAlarmTimestamp());
 
             cuid = new ChannelUID(getThing().getUID(), CHANNEL_STATUS_LOCALIZED);
-            updateState(cuid, new StringType(session.getAlarmObject().getLabel()));
+            updateState(cuid, session.getAlarmObject() == null ? UnDefType.UNDEF
+                    : new StringType(session.getAlarmObject().getLabel()));
         } catch (Exception e) {
             updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.COMMUNICATION_ERROR, e.getLocalizedMessage());
         }

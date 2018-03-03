@@ -83,7 +83,7 @@
             <channel id="timestamp" typeId="timestamp"/>
             <channel id="changername" typeId="changername"/>
             <channel id="setstatus" typeId="setstatus"/>
-            
+
         </channels>
 
         <properties>
@@ -103,11 +103,10 @@
 
        <channels>
             <channel id="status" typeId="status"/>
-            <channel id="statusnumeric" typeId="statusnumeric"/>
             <channel id="timestamp" typeId="timestamp"/>
             <channel id="changername" typeId="changername"/>
-            <channel id="setstatus" typeId="setstatus"/>
-            
+            <channel id="location" typeId="location"/>
+            <channel id="doorlock" typeId="doorlock"/>            
         </channels>
 
         <properties>
@@ -284,7 +283,11 @@
         <state readOnly="true">
         </state>
     </channel-type>
-    
+    <channel-type id="doorlock">
+		<item-type>Switch</item-type>
+		<label>Door Lock</label>
+		<description>Lock or unlock the door</description>
+	</channel-type>
     <channel-type id="location">
         <item-type>String</item-type>
         <label>location</label>
