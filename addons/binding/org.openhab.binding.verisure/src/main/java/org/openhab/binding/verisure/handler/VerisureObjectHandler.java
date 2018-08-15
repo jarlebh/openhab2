@@ -152,11 +152,11 @@ public class VerisureObjectHandler extends BaseThingHandler implements DeviceSta
         String val = obj.getTemperature().substring(0, obj.getTemperature().length() - 6).replace(",", ".");
 
         DecimalType number = new DecimalType(val);
-        updateState(cuid, number);
+        updateState(cuid, new StringType(number.toString()));
         if (obj.getHumidity() != null && obj.getHumidity().length() > 1) {
             val = obj.getHumidity().substring(0, obj.getHumidity().indexOf("%")).replace(",", ".");
             DecimalType hnumber = new DecimalType(val);
-            updateState(huid, hnumber);
+            updateState(huid, new StringType(hnumber.toString()));
         }
         StringType lastUpdate = new StringType(obj.getTimestamp());
         updateState(luid, lastUpdate);
